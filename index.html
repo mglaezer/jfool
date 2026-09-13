@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>101 — карточная игра</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --felt: #1f6b45; --felt-dark: #0f3d27; --gold: #f2c94c; --ink: #1a1a1a; --red: #c8102e;
+    --card-w: 110px; --card-h: 158px;
+  }
+  body {
+    margin: 0; font-family: "Georgia", "Palatino", serif; color: #fff; min-height: 100vh;
+    background: radial-gradient(ellipse at 50% 30%, #2a8a5a 0%, var(--felt) 45%, var(--felt-dark) 100%);
+  }
+  .app { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 14px; }
+
+  header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+  .brand { font-size: 1.5em; letter-spacing: .08em; color: var(--gold); text-shadow: 0 2px 6px rgba(0,0,0,.5); }
+  .scores { display: flex; gap: 12px; flex-wrap: wrap; }
+  .score { background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.15); border-radius: 12px; padding: 8px 14px; min-width: 130px; }
+  .score .label { font-size: .8em; opacity: .8; letter-spacing: .05em; text-transform: uppercase; }
+  .score b { font-size: 1.5em; display: block; }
+  .score .bar { height: 5px; background: rgba(255,255,255,.15); border-radius: 3px; margin-top: 6px; overflow: hidden; }
+  .score .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), #e0523e); width: 0; transition: width .5s ease; }
+
+  .links { font-size: .85em; text-align: center; opacity: .7; }
+  .links a { color: var(--gold); }
+  .section-title { font-size: .8em; text-transform: uppercase; letter-spacing: .12em; opacity: .7; margin-bottom: -6px; }
+  .hand { --step: calc(var(--card-w) + 14px); display: grid; grid-template-columns: repeat(auto-fill, var(--step)); row-gap: 8px;
+          min-height: calc(var(--card-h) + 14px); padding: 6px calc(var(--card-w) - var(--step)) 6px 0; }
+
+  .card {
+    width: var(--card-w); height: var(--card-h); border-radius: 9px; background: linear-gradient(160deg, #fff 0%, #f4f1ea 100%);
+    color: var(--ink); border: 1px solid #b8b3a6; position: relative; font-weight: bold; user-select: none;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    box-shadow: 0 3px 6px rgba(0,0,0,.35), inset 0 0 0 2px #fff; transition: transform .15s ease, box-shadow .15s ease, opacity .2s;
+  }
+  .card.new { animation: deal .3s ease; }
+  @keyframes deal { from { transform: translateY(14px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .card.red { color: var(--red); }
+  .card .idx { position: absolute; left: 5px; top: 3px; font-size: .8em; line-height: 1; text-align: center; }
+  .card .idx .s { font-size: 1.7em; }
+  .card .idx.b { left: auto; right: 5px; top: auto; bottom: 3px; }
+  .card .pip { position: absolute; font-size: 2em; line-height: 1; transform: translate(-50%, -50%); }
+  .card .pip.flip { transform: translate(-50%, -50%) rotate(180deg); }
+  .card .ace { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 4em; }
+  .card .court { position: absolute; left: 22px; right: 22px; top: 14px; bottom: 14px; border: 1px solid currentColor; border-radius: 3px;
+                 display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 2px 0; font-size: 1em;
+                 background: linear-gradient(180deg, rgba(242,201,76,.25), rgba(242,201,76,.05)); }
+  .card .court b { font-family: Georgia, serif; font-size: 2.2em; line-height: 1; }
+  .card .court .s { font-size: 1.7em; line-height: 1; }
+  .card .court .s:last-child { transform: rotate(180deg); }
+  .card.back {
+    background: #23407a;
+    background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.08) 0 5px, transparent 5px 10px),
+                      repeating-linear-gradient(-45deg, rgba(255,255,255,.08) 0 5px, transparent 5px 10px);
+    border-color: #172a52; box-shadow: 0 3px 6px rgba(0,0,0,.35), inset 0 0 0 3px #fff, inset 0 0 0 5px #23407a;
+  }
+  .card.playable { cursor: pointer; box-shadow: 0 0 0 1.5px var(--gold), 0 6px 14px rgba(0,0,0,.4); }
+  .card.playable:hover { transform: translateY(-12px) scale(1.04); z-index: 1; }
+  .card.dim { opacity: .5; filter: saturate(.6); }
+  .card.flying { position: fixed; z-index: 10; pointer-events: none; }
+
+  .table {
+    display: flex; gap: 40px; align-items: center; justify-content: center; padding: 18px;
+    background: rgba(0,0,0,.18); border-radius: 18px; border: 2px solid rgba(255,255,255,.08);
+    box-shadow: inset 0 0 40px rgba(0,0,0,.35); flex-wrap: wrap;
+  }
+  .pile { text-align: center; font-size: .85em; opacity: .95; }
+  .pile .card { margin: 0 auto 6px; }
+  .pile.clickable .card { cursor: pointer; box-shadow: 0 0 0 3px var(--gold), 0 6px 14px rgba(0,0,0,.4); animation: pulse 1.2s infinite; }
+  @keyframes pulse { 50% { transform: translateY(-4px); } }
+  .pile .empty { width: var(--card-w); height: var(--card-h); border-radius: 9px; border: 2px dashed rgba(255,255,255,.3); margin: 0 auto 6px; }
+  #top-card { position: relative; width: var(--card-w); height: var(--card-h); margin: 0 auto 6px; }
+  #top-card .card, #top-card .empty { position: absolute; left: 0; top: 0; margin: 0; }
+  #top-card .under { transform: rotate(-6deg); filter: brightness(.9); }
+  .named { font-size: 1.2em; color: var(--gold); min-height: 1.2em; }
+  .named.red { color: #ff9aa5; }
+
+  .status { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 42px; font-size: 1.1em;
+            background: rgba(0,0,0,.22); border-radius: 12px; padding: 8px 14px; }
+  .status .msg { flex: 1; }
+  .status .note { color: var(--gold); display: block; }
+  button { font: inherit; padding: 8px 18px; border-radius: 999px; border: none; background: var(--gold); color: var(--ink);
+           cursor: pointer; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,.35); transition: transform .1s, filter .1s; }
+  button:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  button.ghost { background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.3); box-shadow: none; }
+
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.25); display: flex; align-items: center; justify-content: center; }
+  .overlay[hidden] { display: none; }
+  .dialog { background: #f7f4ec; color: var(--ink); padding: 28px 32px; border-radius: 16px; text-align: center; min-width: 280px;
+            box-shadow: 0 20px 50px rgba(0,0,0,.5); animation: deal .25s ease; }
+  .dialog h2 { margin: 0 0 16px; font-weight: normal; letter-spacing: .05em; }
+  .suits { display: flex; gap: 12px; justify-content: center; }
+  .suits button { font-size: 2.2em; padding: 10px 18px; background: #fff; border: 2px solid #ddd; border-radius: 12px; color: var(--ink); }
+  .suits button.red { color: var(--red); }
+  .suits button:hover { border-color: var(--gold); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">♠ 101 ♥</div>
+    <div class="scores">
+      <div class="score"><div class="label">Вы</div><b id="score-you">0</b><div class="bar"><i id="bar-you"></i></div></div>
+      <div class="score"><div class="label">Компьютер</div><b id="score-cpu">0</b><div class="bar"><i id="bar-cpu"></i></div></div>
+    </div>
+    <button id="new-game" class="ghost">Новая игра</button>
+  </header>
+
+  <div class="section-title" id="cpu-title">Компьютер</div>
+  <div class="hand" id="cpu-hand"></div>
+
+  <div class="table">
+    <div class="pile" id="deck-pile"><div class="card back"></div><span id="deck-count"></span></div>
+    <div class="pile"><div id="top-card"></div><div id="named-suit" class="named"></div></div>
+  </div>
+
+  <div class="status">
+    <span class="msg" id="status"></span>
+    <button id="next-round" hidden>Следующий раунд</button>
+  </div>
+
+  <div class="section-title">Вы</div>
+  <div class="hand" id="you-hand"></div>
+
+  <footer class="links"><a href="RULES.md">Правила</a> · <a href="STRATEGY.md">Стратегия компьютера</a></footer>
+</div>
+
+<div class="overlay" id="suit-dialog" hidden>
+  <div class="dialog">
+    <h2>Назовите масть</h2>
+    <div class="suits" id="suit-buttons"></div>
+  </div>
+</div>
+
+<script src="game.js"></script>
+<script src="ai.js"></script>
+<script>
+const { SUITS, LOSING_SCORE } = Game;
+const YOU = 0, CPU = 1;
+const RANK_LABEL = { J: 'В', Q: 'Д', K: 'К', A: 'Т' };
+
+function rankLabel(c) { return RANK_LABEL[c.rank] || c.rank; }
+function cardName(c) { return rankLabel(c) + c.suit; }
+
+function plural(n, one, few, many) {
+  const m10 = n % 10, m100 = n % 100;
+  const word = m10 === 1 && m100 !== 11 ? one : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? few : many;
+  return `${n} ${word}`;
+}
+const cardsWord = n => plural(n, 'карта', 'карты', 'карт');
+const pointsWord = n => plural(n, 'очко', 'очка', 'очков');
+
+let state, timer, seen = 0, generation = 0;
+
+function newGame() {
+  state = Game.newGame(Math.random);
+  seen = 0;
+  afterMove(0, null);
+}
+
+function nextRound() {
+  Game.startRound(state, state.winner, Math.random);
+  seen = 0;
+  afterMove(0, null);
+}
+
+// Renders, animates the events since `start` (the played card flies from `playedFrom`),
+// and only then lets the computer think, so each of its moves can be followed.
+function afterMove(start, playedFrom) {
+  clearTimeout(timer);
+  const g = ++generation;
+  render();
+  animateEvents(start, playedFrom).then(() => {
+    if (g === generation && state.current === CPU && !state.roundOver) timer = setTimeout(cpuTurn, 700 + Math.random() * 600);
+  });
+}
+
+function cpuTurn() {
+  const start = state.events.length;
+  if (Game.legalCards(state, CPU).length) {
+    const mv = AI.monteCarloMove(state, CPU, Math.random);
+    const from = document.getElementById('cpu-hand').children[state.hands[CPU].indexOf(mv.card)].getBoundingClientRect();
+    Game.playCard(state, CPU, mv.card, mv.namedSuit);
+    afterMove(start, from);
+  } else {
+    Game.takeDraw(state, CPU);
+    afterMove(start, null);
+  }
+}
+
+// --- Human interaction ---
+function humanMove(act, playedFrom) {
+  seen = state.events.length;
+  act();
+  afterMove(seen, playedFrom);
+}
+
+function onCardClick(card, el) {
+  if (!Game.legalCards(state, YOU).includes(card)) return;
+  const from = el.getBoundingClientRect();
+  if (card.rank === 'Q') showSuitDialog(suit => humanMove(() => Game.playCard(state, YOU, card, suit), from));
+  else humanMove(() => Game.playCard(state, YOU, card, null), from);
+}
+
+function onDeckClick() {
+  if (state.roundOver || state.current !== YOU || state.drawn || Game.legalCards(state, YOU).length) return;
+  humanMove(() => Game.takeDraw(state, YOU), null);
+}
+
+// --- Animation ---
+function flyCard(card, from, toEl, faceUp, delay) {
+  const to = toEl.getBoundingClientRect();
+  const ghost = faceUp ? cardEl(card) : Object.assign(document.createElement('div'), { className: 'card back' });
+  ghost.classList.add('flying');
+  ghost.style.left = from.left + 'px';
+  ghost.style.top = from.top + 'px';
+  document.body.appendChild(ghost);
+  toEl.style.visibility = 'hidden';
+  const anim = ghost.animate([
+    { transform: 'translate(0, 0) scale(1)' },
+    { transform: `translate(${(to.left - from.left) / 2}px, ${(to.top - from.top) / 2}px) scale(1.18)` },
+    { transform: `translate(${to.left - from.left}px, ${to.top - from.top}px) scale(1)` },
+  ], { duration: 700, delay, easing: 'cubic-bezier(.4, 0, .2, 1)', fill: 'forwards' });
+  return anim.finished.then(() => { ghost.remove(); toEl.style.visibility = ''; });
+}
+
+function handCardEl(player, card) {
+  return document.getElementById(player === YOU ? 'you-hand' : 'cpu-hand').children[state.hands[player].indexOf(card)];
+}
+
+function animateEvents(start, playedFrom) {
+  const deck = document.getElementById('deck-pile').firstElementChild.getBoundingClientRect();
+  const flights = [];
+  for (const ev of state.events.slice(start)) {
+    if (ev.type === 'play' && playedFrom) {
+      flights.push(flyCard(ev.card, playedFrom, document.getElementById('top-card').lastElementChild, true, 0));
+    } else if (ev.type === 'draw' && ev.card) {
+      flights.push(flyCard(ev.card, deck, handCardEl(ev.player, ev.card), ev.player === YOU, 0));
+    } else if (ev.type === 'seven') {
+      state.hands[ev.player].slice(-ev.taken).forEach((c, i) =>
+        flights.push(flyCard(c, deck, handCardEl(ev.player, c), ev.player === YOU, 350 + i * 200)));
+    }
+  }
+  return Promise.all(flights);
+}
+
+function showSuitDialog(onPick) {
+  const box = document.getElementById('suit-buttons');
+  box.innerHTML = '';
+  for (const s of SUITS) {
+    const b = document.createElement('button');
+    b.textContent = s;
+    if (isRed(s)) b.classList.add('red');
+    b.onclick = () => { document.getElementById('suit-dialog').hidden = true; onPick(s); };
+    box.appendChild(b);
+  }
+  document.getElementById('suit-dialog').hidden = false;
+}
+
+// --- Rendering ---
+function isRed(suit) { return suit === '♥' || suit === '♦'; }
+
+const SIDES = [[0, 0], [2, 0], [0, 3], [2, 3], [0, 6], [2, 6]];
+const SIDES4 = [[0, 0], [2, 0], [0, 2], [2, 2], [0, 4], [2, 4], [0, 6], [2, 6]];
+const PIPS = {
+  '6': SIDES,
+  '7': [...SIDES, [1, 1.5]],
+  '8': [...SIDES, [1, 1.5], [1, 4.5]],
+  '9': [...SIDES4, [1, 3]],
+  '10': [...SIDES4, [1, 1], [1, 5]],
+};
+
+function cardEl(c, cls = '') {
+  const el = document.createElement('div');
+  el.className = 'card ' + cls + (isRed(c.suit) ? ' red' : '');
+  const idx = `${rankLabel(c)}<br><span class="s">${c.suit}</span>`;
+  let middle;
+  if (c.rank === 'A') {
+    middle = `<span class="ace">${c.suit}</span>`;
+  } else if (PIPS[c.rank]) {
+    middle = PIPS[c.rank].map(([col, row]) =>
+      `<span class="pip${row > 3 ? ' flip' : ''}" style="left:${31 + col * 19}%;top:${18 + row / 6 * 64}%">${c.suit}</span>`).join('');
+  } else {
+    middle = `<span class="court"><span class="s">${c.suit}</span><b>${rankLabel(c)}</b><span class="s">${c.suit}</span></span>`;
+  }
+  el.innerHTML = `<span class="idx">${idx}</span>${middle}<span class="idx b">${idx}</span>`;
+  return el;
+}
+
+function describe(ev) {
+  const you = ev.player === YOU;
+  switch (ev.type) {
+    case 'play': return ev.player === CPU ? `Компьютер ходит ${cardName(ev.card)}${ev.namedSuit ? ' и заказывает ' + ev.namedSuit : ''}.` : '';
+    case 'draw': return ev.player === CPU && ev.card ? 'Компьютер берёт карту.' : '';
+    case 'pass': return ev.player === CPU ? 'Компьютер пропускает ход.' : '';
+    case 'skip': return you ? 'Туз! Вы пропускаете ход.' : 'Туз! Компьютер пропускает ход.';
+    case 'seven': return you ? `Семёрка! Вы берёте ${cardsWord(ev.taken)} и пропускаете ход.` : `Семёрка! Компьютер берёт ${cardsWord(ev.taken)} и пропускает ход.`;
+    case 'reshuffle': return 'Колода закончилась: сброс перетасован, сыгранные карты вернулись в игру.';
+    default: return '';
+  }
+}
+
+function fitHand(hand) {
+  const n = hand.children.length;
+  const cardW = parseFloat(getComputedStyle(hand).getPropertyValue('--card-w'));
+  const step = n > 1 ? Math.min(cardW + 14, Math.max(24, Math.floor((hand.clientWidth - cardW) / (n - 1)))) : cardW + 14;
+  hand.style.setProperty('--step', step + 'px');
+}
+
+let lastTop = null;
+
+function render() {
+  document.getElementById('score-you').textContent = state.scores[YOU];
+  document.getElementById('score-cpu').textContent = state.scores[CPU];
+  document.getElementById('bar-you').style.width = Math.min(100, Math.max(0, state.scores[YOU]) / LOSING_SCORE * 100) + '%';
+  document.getElementById('bar-cpu').style.width = Math.min(100, Math.max(0, state.scores[CPU]) / LOSING_SCORE * 100) + '%';
+
+  const cpuCards = state.hands[CPU];
+  document.getElementById('cpu-title').textContent = `Компьютер · ${cardsWord(cpuCards.length)}`;
+  const cpuHand = document.getElementById('cpu-hand');
+  cpuHand.innerHTML = '';
+  for (const c of cpuCards) {
+    cpuHand.appendChild(state.roundOver ? cardEl(c) : Object.assign(document.createElement('div'), { className: 'card back' }));
+  }
+
+  const yourTurn = state.current === YOU && !state.roundOver;
+  const playable = Game.legalCards(state, YOU);
+  const youHand = document.getElementById('you-hand');
+  youHand.innerHTML = '';
+  for (const c of state.hands[YOU]) {
+    const el = cardEl(c, (playable.includes(c) ? 'playable' : (state.roundOver ? '' : 'dim')) + (c === state.drawn ? ' new' : ''));
+    el.onclick = () => onCardClick(c, el);
+    youHand.appendChild(el);
+  }
+
+  const topBox = document.getElementById('top-card');
+  topBox.innerHTML = '';
+  const under = state.discard[state.discard.length - 2];
+  if (under) topBox.appendChild(cardEl(under, 'under'));
+  topBox.appendChild(state.top ? cardEl(state.top, state.top !== lastTop ? 'new' : '') : Object.assign(document.createElement('div'), { className: 'empty' }));
+  lastTop = state.top;
+  const named = document.getElementById('named-suit');
+  named.textContent = state.namedSuit ? `Заказана масть: ${state.namedSuit}` : '';
+  named.className = 'named' + (state.namedSuit && isRed(state.namedSuit) ? ' red' : '');
+
+  document.getElementById('deck-count').textContent = `в колоде: ${state.deck.length}`;
+  const deckPile = document.getElementById('deck-pile');
+  deckPile.classList.toggle('clickable', yourTurn && !state.drawn && playable.length === 0);
+  deckPile.onclick = onDeckClick;
+
+  document.getElementById('next-round').hidden = !(state.roundOver && !state.gameOver);
+  document.getElementById('next-round').onclick = nextRound;
+
+  const status = document.getElementById('status');
+  if (state.roundOver) {
+    const end = state.events[state.events.length - 1];
+    const loser = 1 - end.winner;
+    status.textContent = (state.gameOver ? `Игра окончена. ${state.loser === YOU ? 'Вы проиграли.' : 'Вы выиграли!'}` : `Раунд окончен. ${end.winner === YOU ? 'Вы выиграли раунд.' : 'Раунд выиграл компьютер.'}`)
+      + (loser === YOU ? ` Вы получаете ${pointsWord(end.points)}.` : ` Компьютер получает ${pointsWord(end.points)}.`)
+      + (end.bonus ? (end.winner === YOU ? ` Вы закончили дамой: минус ${end.bonus}.` : ` Компьютер закончил дамой: минус ${end.bonus}.`) : '');
+    return fitHands();
+  }
+  if (!yourTurn) status.textContent = 'Ход компьютера…';
+  else if (state.drawn) status.textContent = 'Сыграйте взятую карту.';
+  else if (playable.length === 0) status.textContent = 'Нет подходящей карты. Нажмите на колоду, чтобы взять карту.';
+  else status.textContent = 'Ваш ход. Выберите подсвеченную карту.';
+  const note = state.events.slice(seen).map(describe).filter(Boolean).join(' ');
+  if (note) status.innerHTML = `<b class="note">${note}</b> ${status.textContent}`;
+  fitHands();
+}
+
+function fitHands() { document.querySelectorAll('.hand').forEach(fitHand); }
+
+window.addEventListener('resize', fitHands);
+document.getElementById('new-game').onclick = newGame;
+newGame();
+</script>
+</body>
+</html>
