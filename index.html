@@ -70,7 +70,10 @@
   }
   .pile { text-align: center; font-size: .85em; opacity: .95; }
   .pile .card { margin: 0 auto 6px; }
-  .pile.clickable .card { cursor: pointer; box-shadow: 0 0 0 3px var(--gold), 0 6px 14px rgba(0,0,0,.4); animation: pulse 1.2s infinite; }
+  #deck { position: relative; width: var(--card-w); height: var(--card-h); margin: 0 auto 6px; }
+  #deck .card { position: absolute; left: 0; top: 0; margin: 0; }
+  #deck .bottom { transform: translateX(-40%) rotate(90deg); }
+  .pile.clickable .card.back { cursor: pointer; box-shadow: 0 0 0 3px var(--gold), 0 6px 14px rgba(0,0,0,.4); animation: pulse 1.2s infinite; }
   @keyframes pulse { 50% { transform: translateY(-4px); } }
   .pile .empty { width: var(--card-w); height: var(--card-h); border-radius: 9px; border: 2px dashed rgba(255,255,255,.3); margin: 0 auto 6px; }
   #top-card { position: relative; width: var(--card-w); height: var(--card-h); margin: 0 auto 6px; }
@@ -114,7 +117,7 @@
   <div class="hand" id="cpu-hand"></div>
 
   <div class="table">
-    <div class="pile" id="deck-pile"><div class="card back"></div><span id="deck-count"></span></div>
+    <div class="pile" id="deck-pile"><div id="deck"><div class="card back"></div></div><span id="deck-count"></span></div>
     <div class="pile"><div id="top-card"></div><div id="named-suit" class="named"></div></div>
   </div>
 
@@ -151,6 +154,7 @@ function plural(n, one, few, many) {
   const word = m10 === 1 && m100 !== 11 ? one : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? few : many;
   return `${n} ${word}`;
 }
+const SUIT_LOW = { '♠': 'пика', '♥': 'черва', '♦': 'бубна', '♣': 'трефа' };
 const cardsWord = n => plural(n, 'карта', 'карты', 'карт');
 const pointsWord = n => plural(n, 'очко', 'очка', 'очков');
 
@@ -301,6 +305,8 @@ function describe(ev) {
     case 'seven':
       if (!ev.taken) return you ? 'Семёрка! Колода пуста, вы пропускаете ход.' : 'Семёрка! Колода пуста, компьютер пропускает ход.';
       return you ? `Семёрка! Вы берёте ${cardsWord(ev.taken)} и пропускаете ход.` : `Семёрка! Компьютер берёт ${cardsWord(ev.taken)} и пропускает ход.`;
+    case 'round': return ev.bottom ? `Внизу колоды ${cardName(ev.bottom)}: младшая ${SUIT_LOW[ev.bottom.suit]} у ${ev.starter === YOU ? 'вас' : 'компьютера'}.` : '';
+    case 'redeal': return `Пересдача: ни у кого не было ${ev.suit}.`;
     case 'empty': return ev.player === CPU ? 'Колода пуста: компьютер пропускает ход.' : '';
     case 'flip': return 'Оба пропустили ход: сброс перевёрнут и стал колодой.';
     default: return '';
@@ -350,6 +356,10 @@ function render() {
   named.textContent = state.namedSuit ? `Заказана масть: ${state.namedSuit}` : '';
   named.className = 'named' + (state.namedSuit && isRed(state.namedSuit) ? ' red' : '');
 
+  const deckBox = document.getElementById('deck');
+  deckBox.innerHTML = '';
+  if (state.bottom && state.deck[0] === state.bottom) deckBox.appendChild(cardEl(state.bottom, 'bottom'));
+  deckBox.appendChild(Object.assign(document.createElement('div'), { className: 'card back' }));
   document.getElementById('deck-count').textContent = `в колоде: ${state.deck.length}`;
   const deckPile = document.getElementById('deck-pile');
   deckPile.classList.toggle('clickable', yourTurn && !state.drawn && playable.length === 0);
@@ -369,6 +379,7 @@ function render() {
   }
   if (!yourTurn) status.textContent = 'Ход компьютера…';
   else if (state.drawn) status.textContent = 'Сыграйте взятую карту.';
+  else if (state.forced) status.textContent = `Первый ход: сыграйте ${cardName(state.forced)}.`;
   else if (playable.length === 0) status.textContent = state.deck.length ? 'Нет подходящей карты. Нажмите на колоду, чтобы взять карту.' : 'Нет подходящей карты, колода пуста. Нажмите на колоду, чтобы пропустить ход.';
   else status.textContent = 'Ваш ход. Выберите подсвеченную карту.';
   const note = state.events.slice(seen).map(describe).filter(Boolean).join(' ');

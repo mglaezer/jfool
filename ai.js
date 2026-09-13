@@ -69,6 +69,9 @@
   function sampleWorld(state, me, slots, rng) {
     const opp = 1 - me;
     const pool = unseenCards(state, me);
+    // The face-up bottom card of the first deal is still at the bottom of the deck as long as it is unseen and the deck is not empty.
+    const bottom = state.bottom && state.deck.length && pool.includes(state.bottom) ? state.bottom : null;
+    if (bottom) pool.splice(pool.indexOf(bottom), 1);
     const n = state.hands[opp].length;
     const order = slots.slice(0, n);
     while (order.length < n) order.push([]);
@@ -84,6 +87,7 @@
     const w = cloneState(state);
     w.hands[opp] = hand;
     w.deck = shuffle(pool, rng);
+    if (bottom) w.deck.unshift(bottom);
     return w;
   }
 

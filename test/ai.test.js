@@ -69,6 +69,16 @@ test('inference: a draw and pass mark every hidden card as unable to match', () 
   }
 });
 
+test('sampling keeps the face-up bottom card at the bottom of the deck', () => {
+  const s = makeState({ hands: [['6♦', '7♦'], ['6♥', '7♥', '8♥']], top: '9♠', bottom: '9♦' });
+  const rng = G.mulberry32(4);
+  for (let i = 0; i < 30; i++) {
+    const w = AI.sampleWorld(s, ME, [], rng);
+    assert.equal(w.deck[0], card('9♦'));
+    assert.ok(!w.hands[1].includes(card('9♦')));
+  }
+});
+
 test('inference: a card played right after a draw is the drawn card', () => {
   const events = [
     { type: 'round', starter: 0 },

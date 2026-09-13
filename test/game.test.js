@@ -12,6 +12,36 @@ test('deals 5 cards each from a unique 36-card deck', () => {
   assert.equal(ids.size, 36);
 });
 
+test('first round: the lowest card of the bottom card suit leads and must be played', () => {
+  const s = G.newGame(G.mulberry32(1));
+  assert.equal(s.bottom, card('K♦'));
+  assert.equal(s.deck[0], card('K♦'));
+  assert.deepEqual(s.hands[0].filter(c => c.suit === '♦'), cards(['10♦', '6♦']));
+  assert.deepEqual(s.hands[1].filter(c => c.suit === '♦'), cards(['8♦', 'A♦']));
+  assert.equal(s.current, 0);
+  assert.deepEqual(G.legalCards(s, 0), [card('6♦')]);
+  assert.throws(() => G.playCard(s, 0, card('10♦')));
+  G.playCard(s, 0, card('6♦'));
+  assert.equal(s.forced, null);
+  assert.deepEqual(s.events[0], { type: 'round', starter: 0, bottom: card('K♦') });
+});
+
+test('first round: a deal where nobody holds the bottom suit is redone', () => {
+  const s = G.newGame(G.mulberry32(8));
+  assert.deepEqual(s.events[0], { type: 'redeal', suit: '♣' });
+  assert.equal(s.bottom, card('8♣'));
+  assert.equal(s.forced, card('6♣'));
+  assert.equal(s.deck.length, 26);
+});
+
+test('later rounds start with the winner and any card', () => {
+  const s = G.newGame(G.mulberry32(1));
+  G.startRound(s, 1, G.mulberry32(2));
+  assert.equal(s.current, 1);
+  assert.equal(s.bottom, null);
+  assert.deepEqual(G.legalCards(s, 1), s.hands[1]);
+});
+
 test('first move allows any card', () => {
   const s = makeState({ hands: [['6♠', 'Q♥', 'A♣'], ['7♦']] });
   assert.deepEqual(G.legalCards(s, 0), cards(['6♠', 'Q♥', 'A♣']));

@@ -47,24 +47,42 @@
     if (state.events) state.events.push(event);
   }
 
-  function newGame(rng, starter) {
+  function newGame(rng, starter = null) {
     const state = { scores: [0, 0], gameOver: false, loser: null, events: [] };
-    startRound(state, starter === undefined ? (rng() < 0.5 ? 0 : 1) : starter, rng);
+    startRound(state, starter, rng);
     return state;
   }
 
+  function lowestOfSuit(hand, suit) {
+    return hand.filter(c => c.suit === suit).sort((a, b) => RANKS.indexOf(a.rank) - RANKS.indexOf(b.rank))[0] || null;
+  }
+
+  // Without a starter (the first round) the bottom card of the deck is turned up and the player
+  // holding the lowest card of its suit leads with that card; a deal where nobody has the suit is redone.
   function startRound(state, starter, rng) {
-    Object.assign(state, {
-      deck: shuffle(DECK.slice(), rng), discard: [], hands: [[], []],
-      top: null, namedSuit: null, current: starter, drawn: null, roundOver: false, winner: null,
-      skips: 0, lastPlayer: null,
-    });
     if (state.events) state.events.length = 0;
-    for (let i = 0; i < HAND_SIZE; i++) {
-      state.hands[0].push(state.deck.pop());
-      state.hands[1].push(state.deck.pop());
+    let bottom = null, forced = null;
+    for (;;) {
+      Object.assign(state, {
+        deck: shuffle(DECK.slice(), rng), discard: [], hands: [[], []],
+        top: null, namedSuit: null, drawn: null, roundOver: false, winner: null, skips: 0, lastPlayer: null,
+      });
+      for (let i = 0; i < HAND_SIZE; i++) {
+        state.hands[0].push(state.deck.pop());
+        state.hands[1].push(state.deck.pop());
+      }
+      if (starter !== null) break;
+      bottom = state.deck[0];
+      const lowest = state.hands.map(h => lowestOfSuit(h, bottom.suit));
+      if (lowest[0] || lowest[1]) {
+        starter = lowest[0] && (!lowest[1] || RANKS.indexOf(lowest[0].rank) < RANKS.indexOf(lowest[1].rank)) ? 0 : 1;
+        forced = lowest[starter];
+        break;
+      }
+      emit(state, { type: 'redeal', suit: bottom.suit });
     }
-    emit(state, { type: 'round', starter });
+    Object.assign(state, { current: starter, bottom, forced });
+    emit(state, { type: 'round', starter, bottom });
   }
 
   function canPlay(state, card) {
@@ -74,6 +92,7 @@
   function legalCards(state, player) {
     if (state.roundOver || state.current !== player) return [];
     if (state.drawn) return canPlay(state, state.drawn) ? [state.drawn] : [];
+    if (state.forced) return [state.forced];
     return state.hands[player].filter(c => canPlay(state, c));
   }
 
@@ -93,6 +112,7 @@
     state.top = card;
     state.namedSuit = card.rank === 'Q' ? namedSuit : null;
     state.drawn = null;
+    state.forced = null;
     state.skips = 0;
     state.lastPlayer = player;
     emit(state, { type: 'play', player, card, namedSuit: state.namedSuit });
