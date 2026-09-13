@@ -54,10 +54,10 @@
   }
 
   function startRound(state, starter, rng) {
-    state.rng = rng;
     Object.assign(state, {
       deck: shuffle(DECK.slice(), rng), discard: [], hands: [[], []],
       top: null, namedSuit: null, current: starter, drawn: null, roundOver: false, winner: null,
+      skips: 0, lastPlayer: null,
     });
     if (state.events) state.events.length = 0;
     for (let i = 0; i < HAND_SIZE; i++) {
@@ -78,13 +78,7 @@
   }
 
   function drawInto(state, player) {
-    if (state.deck.length === 0) {
-      if (state.discard.length <= 1) return null;
-      const top = state.discard.pop();
-      state.deck = shuffle(state.discard, state.rng);
-      state.discard = [top];
-      emit(state, { type: 'reshuffle' });
-    }
+    if (state.deck.length === 0) return null;
     const c = state.deck.pop();
     state.hands[player].push(c);
     return c;
@@ -99,6 +93,8 @@
     state.top = card;
     state.namedSuit = card.rank === 'Q' ? namedSuit : null;
     state.drawn = null;
+    state.skips = 0;
+    state.lastPlayer = player;
     emit(state, { type: 'play', player, card, namedSuit: state.namedSuit });
     if (hand.length === 0) return endRound(state, player);
     const other = 1 - player;
@@ -115,14 +111,30 @@
   function takeDraw(state, player) {
     if (state.roundOver || state.current !== player || state.drawn) throw new Error('cannot draw now');
     if (legalCards(state, player).length) throw new Error('must play a legal card');
+    if (state.deck.length === 0) {
+      emit(state, { type: 'empty', player });
+      state.current = 1 - player;
+      if (++state.skips === 2) flipDiscard(state);
+      return null;
+    }
     const c = drawInto(state, player);
     emit(state, { type: 'draw', player, card: c });
-    if (c && canPlay(state, c)) {
+    if (canPlay(state, c)) {
       state.drawn = c;
       return c;
     }
     passTurn(state, player);
     return c;
+  }
+
+  // The pile is turned over unshuffled, so the first card played is the first one drawn.
+  function flipDiscard(state) {
+    const top = state.discard.pop();
+    state.deck = state.discard.reverse();
+    state.discard = [top];
+    state.skips = 0;
+    state.current = 1 - state.lastPlayer;
+    emit(state, { type: 'flip' });
   }
 
   function passTurn(state, player) {

@@ -38,10 +38,10 @@
           else removeSlot(slots, e.card);
         }
         top = e.card; named = e.namedSuit || null;
-      } else if (e.type === 'draw' && e.player === opp) {
+      } else if ((e.type === 'draw' || e.type === 'empty') && e.player === opp) {
         const con = { top, named };
         slots.forEach(s => s.push(con));
-        pendingDraw = true;
+        pendingDraw = e.type === 'draw';
       } else if (e.type === 'pass' && e.player === opp) {
         if (pendingDraw) slots.push([{ top, named }]);
         pendingDraw = false;
@@ -84,7 +84,6 @@
     const w = cloneState(state);
     w.hands[opp] = hand;
     w.deck = shuffle(pool, rng);
-    w.rng = rng;
     return w;
   }
 
@@ -182,7 +181,6 @@
       const world = sampleWorld(state, player, slots, rng);
       moves.forEach((mv, i) => {
         const w = cloneState(world);
-        w.rng = rng;
         playCard(w, player, mv.card, mv.namedSuit);
         totals[i] += rollout(w, player, rng, base, o.maxSteps);
       });

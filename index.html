@@ -298,8 +298,11 @@ function describe(ev) {
     case 'draw': return ev.player === CPU && ev.card ? 'Компьютер берёт карту.' : '';
     case 'pass': return ev.player === CPU ? 'Компьютер пропускает ход.' : '';
     case 'skip': return you ? 'Туз! Вы пропускаете ход.' : 'Туз! Компьютер пропускает ход.';
-    case 'seven': return you ? `Семёрка! Вы берёте ${cardsWord(ev.taken)} и пропускаете ход.` : `Семёрка! Компьютер берёт ${cardsWord(ev.taken)} и пропускает ход.`;
-    case 'reshuffle': return 'Колода закончилась: сброс перетасован, сыгранные карты вернулись в игру.';
+    case 'seven':
+      if (!ev.taken) return you ? 'Семёрка! Колода пуста, вы пропускаете ход.' : 'Семёрка! Колода пуста, компьютер пропускает ход.';
+      return you ? `Семёрка! Вы берёте ${cardsWord(ev.taken)} и пропускаете ход.` : `Семёрка! Компьютер берёт ${cardsWord(ev.taken)} и пропускает ход.`;
+    case 'empty': return ev.player === CPU ? 'Колода пуста: компьютер пропускает ход.' : '';
+    case 'flip': return 'Оба пропустили ход: сброс перевёрнут и стал колодой.';
     default: return '';
   }
 }
@@ -366,7 +369,7 @@ function render() {
   }
   if (!yourTurn) status.textContent = 'Ход компьютера…';
   else if (state.drawn) status.textContent = 'Сыграйте взятую карту.';
-  else if (playable.length === 0) status.textContent = 'Нет подходящей карты. Нажмите на колоду, чтобы взять карту.';
+  else if (playable.length === 0) status.textContent = state.deck.length ? 'Нет подходящей карты. Нажмите на колоду, чтобы взять карту.' : 'Нет подходящей карты, колода пуста. Нажмите на колоду, чтобы пропустить ход.';
   else status.textContent = 'Ваш ход. Выберите подсвеченную карту.';
   const note = state.events.slice(seen).map(describe).filter(Boolean).join(' ');
   if (note) status.innerHTML = `<b class="note">${note}</b> ${status.textContent}`;

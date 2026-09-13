@@ -100,6 +100,17 @@ test('inference: cards taken from a seven are unconstrained and a queen names th
   assert.equal(shortage['♠'], 0);
 });
 
+test('inference: a skip on an empty deck constrains every hidden card without adding one', () => {
+  const events = [
+    { type: 'round', starter: 0 },
+    { type: 'play', player: 0, card: card('9♠'), namedSuit: null },
+    { type: 'empty', player: 1 },
+  ];
+  const slots = AI.opponentSlots(events, ME);
+  assert.equal(slots.length, 5);
+  assert.ok(slots.every(s => s.length === 1 && AI.violates(card('6♠'), s[0])));
+});
+
 test('inference: a played card removes one hidden slot', () => {
   const events = [
     { type: 'round', starter: 1 },

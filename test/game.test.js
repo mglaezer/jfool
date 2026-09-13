@@ -102,12 +102,43 @@ test('cannot draw while holding a playable card', () => {
   assert.throws(() => G.takeDraw(s, 0));
 });
 
-test('an empty deck is refilled from the discard pile except the top card', () => {
+test('with an empty deck a player without a legal card skips without drawing', () => {
   const s = makeState({ hands: [['6♦'], ['7♦']], top: '8♠', discard: ['9♥', '10♥', '8♠'], deck: [] });
+  assert.equal(G.takeDraw(s, 0), null);
+  assert.equal(s.hands[0].length, 1);
+  assert.equal(s.current, 1);
+  assert.deepEqual(s.deck, []);
+  assert.deepEqual(s.events.at(-1), { type: 'empty', player: 0 });
+});
+
+test('two skips in a row turn the pile over unshuffled and give the turn to the player after the last to play', () => {
+  const s = makeState({ hands: [['6♦'], ['7♦']], top: '8♠', discard: ['9♥', '10♥', '8♠'], deck: [], lastPlayer: 0 });
   G.takeDraw(s, 0);
-  assert.equal(s.discard.length, 1);
-  assert.equal(s.discard[0], card('8♠'));
-  assert.equal(s.hands[0].length + s.deck.length, 3);
+  G.takeDraw(s, 1);
+  assert.deepEqual(s.events.at(-1), { type: 'flip' });
+  assert.deepEqual(s.discard, [card('8♠')]);
+  assert.equal(s.current, 1);
+  assert.equal(G.takeDraw(s, 1), card('9♥'));
+  assert.equal(s.current, 0);
+});
+
+test('a card played between two skips restarts the count', () => {
+  const s = makeState({ hands: [['6♦'], ['7♦', '8♣']], top: '8♠', discard: ['9♥', '8♠'], deck: [] });
+  G.takeDraw(s, 0);
+  G.playCard(s, 1, card('8♣'));
+  G.takeDraw(s, 0);
+  assert.deepEqual(s.deck, []);
+  G.takeDraw(s, 1);
+  assert.deepEqual(s.events.at(-1), { type: 'flip' });
+  assert.deepEqual(s.deck.map(G.cardName), ['8♠', '9♥']);
+});
+
+test('a seven with a short deck takes what is left', () => {
+  const s = makeState({ hands: [['7♠', '9♠'], ['7♦']], top: '8♠', deck: ['9♥'] });
+  G.playCard(s, 0, card('7♠'));
+  assert.equal(s.hands[1].length, 2);
+  assert.deepEqual(s.events.at(-1), { type: 'seven', player: 1, taken: 1 });
+  assert.equal(s.skips, 0);
 });
 
 test('round scoring counts the loser hand and rewards a queen finish', () => {
