@@ -70,9 +70,9 @@
   .pile { text-align: center; font-size: .85em; opacity: .95; }
   .pile .card { margin: 0 auto 6px; }
   #deck { position: relative; width: var(--card-w); height: var(--card-h); margin: 0 auto 6px; }
-  #deck .card { position: absolute; left: 0; top: 0; margin: 0; }
+  #deck .card, #deck .empty { position: absolute; left: 0; top: 0; margin: 0; }
   #deck .bottom { transform: translateX(-40%) rotate(90deg); }
-  .pile.clickable .card.back { cursor: pointer; box-shadow: 0 0 0 3px var(--gold), 0 6px 14px rgba(0,0,0,.4); animation: pulse 1.2s infinite; }
+  .pile.clickable .card.back, .pile.clickable .empty { cursor: pointer; box-shadow: 0 0 0 3px var(--gold), 0 6px 14px rgba(0,0,0,.4); animation: pulse 1.2s infinite; }
   @keyframes pulse { 50% { transform: translateY(-4px); } }
   .pile .empty { width: var(--card-w); height: var(--card-h); border-radius: 9px; border: 2px dashed rgba(255,255,255,.3); margin: 0 auto 6px; }
   #top-card { position: relative; width: var(--card-w); height: var(--card-h); margin: 0 auto 6px; }
@@ -361,8 +361,8 @@ function render() {
   const deckBox = document.getElementById('deck');
   deckBox.innerHTML = '';
   if (state.forced) deckBox.appendChild(cardEl(state.bottom, 'bottom'));
-  deckBox.appendChild(Object.assign(document.createElement('div'), { className: 'card back' }));
-  document.getElementById('deck-count').textContent = `в колоде: ${state.deck.length}`;
+  deckBox.appendChild(Object.assign(document.createElement('div'), { className: state.deck.length ? 'card back' : 'empty' }));
+  document.getElementById('deck-count').textContent = state.deck.length ? `в колоде: ${state.deck.length}` : 'колода пуста';
   const deckPile = document.getElementById('deck-pile');
   deckPile.classList.toggle('clickable', yourTurn && !state.drawn && playable.length === 0);
   deckPile.onclick = onDeckClick;
