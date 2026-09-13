@@ -145,7 +145,7 @@
 <script src="game.js"></script>
 <script src="ai.js"></script>
 <script>
-const { SUITS, LOSING_SCORE } = Game;
+const { SUITS, RANKS, LOSING_SCORE } = Game;
 const YOU = 0, CPU = 1;
 const RANK_LABEL = { J: 'В', Q: 'Д', K: 'К', A: 'Т' };
 
@@ -235,8 +235,15 @@ function flyCard(card, from, toEl, faceUp, delay) {
   return anim.finished.then(() => { ghost.remove(); toEl.style.visibility = ''; });
 }
 
+const SUIT_ORDER = ['♠', '♦', '♣', '♥'];
+function shownHand(player) {
+  const hand = state.hands[player];
+  if (player !== YOU) return hand;
+  return hand.slice().sort((a, b) => SUIT_ORDER.indexOf(a.suit) - SUIT_ORDER.indexOf(b.suit) || RANKS.indexOf(a.rank) - RANKS.indexOf(b.rank));
+}
+
 function handCardEl(player, card) {
-  return document.getElementById(player === YOU ? 'you-hand' : 'cpu-hand').children[state.hands[player].indexOf(card)];
+  return document.getElementById(player === YOU ? 'you-hand' : 'cpu-hand').children[shownHand(player).indexOf(card)];
 }
 
 function animateEvents(start, playedFrom) {
@@ -342,7 +349,7 @@ function render() {
   const playable = Game.legalCards(state, YOU);
   const youHand = document.getElementById('you-hand');
   youHand.innerHTML = '';
-  for (const c of state.hands[YOU]) {
+  for (const c of shownHand(YOU)) {
     const el = cardEl(c, (playable.includes(c) ? 'playable' : (state.roundOver ? '' : 'dim')));
     el.onclick = () => onCardClick(c, el);
     youHand.appendChild(el);
