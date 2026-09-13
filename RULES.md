@@ -1,42 +1,42 @@
-# Rules
+# Правила
 
-## Setup
+## Подготовка
 
-- Two players: you and the computer.
-- The deck has 36 cards: 6, 7, 8, 9, 10, Jack, Queen, King, Ace in each of the four suits.
-- Each player is dealt 5 cards. The rest forms the draw pile.
-- The starting player of the first round is chosen at random. In later rounds the winner of the previous round starts.
+- Два игрока: вы и компьютер.
+- Колода из 36 карт: 6, 7, 8, 9, 10, валет, дама, король, туз каждой из четырёх мастей.
+- Каждому игроку сдаётся по 5 карт. Остальные карты образуют колоду для добора.
+- Первый ход в первом раунде разыгрывается случайно. В следующих раундах первым ходит победитель предыдущего раунда.
 
-## Playing
+## Ход игры
 
-- The first card of a round can be any card.
-- After that, a played card must match the **suit** or the **value** of the card on top of the discard pile.
-- You may only draw when you have no playable card. You draw one card from the deck: if it is playable you must play it, otherwise your turn ends.
-- When the deck runs out, the discard pile (except the top card) is shuffled to form a new deck.
+- Первой картой раунда может быть любая карта.
+- Дальше выложенная карта должна совпадать по **масти** или по **достоинству** с верхней картой стопки сброса.
+- Брать карту из колоды можно только тогда, когда подходящей карты в руке нет. Берётся одна карта: если она подходит, её нужно сыграть, иначе ход переходит к сопернику.
+- Когда колода заканчивается, стопка сброса (кроме верхней карты) перемешивается и становится новой колодой.
 
-## Special cards
+## Особые карты
 
-- **Ace**: the next player skips a turn (you play again).
-- **7**: the next player takes 2 cards from the deck and skips a turn (you play again).
-- **Queen**: must match the top card by suit or rank like any other card. The player then names a suit, and the next card must be of that suit (or another Queen).
+- **Туз**: соперник пропускает ход (вы ходите снова).
+- **7**: соперник берёт 2 карты из колоды и пропускает ход (вы ходите снова).
+- **Дама**: должна совпадать с верхней картой по масти или достоинству, как любая другая карта. Затем игрок называет масть, и следующая карта должна быть этой масти (или другой дамой).
 
-## Scoring
+## Подсчёт очков
 
-The round ends when one player runs out of cards. The other player's remaining cards are counted:
+Раунд заканчивается, когда у одного из игроков не остаётся карт. Оставшиеся карты другого игрока считаются:
 
-| Card | Points |
+| Карта | Очки |
 |------|--------|
-| 6–10 | face value |
-| Jack | 2 |
-| King | 4 |
-| Ace | 11 |
-| Queen | 20 |
-| Queen of hearts | 40 |
+| 6–10 | по достоинству |
+| Валет | 2 |
+| Король | 4 |
+| Туз | 11 |
+| Дама | 20 |
+| Дама червей | 40 |
 
-If the winner finished the round with a Queen, the winner's score is reduced by 20 (or 40 for the Queen of hearts), but not below 0.
+Если победитель закончил раунд дамой, его счёт уменьшается на 20 (или на 40 за даму червей), но не ниже 0.
 
-Scores accumulate across rounds. The first player to reach **101 points loses** the game.
+Очки накапливаются от раунда к раунду. Проигрывает тот, кто первым наберёт **101 очко**.
 
-## How to play
+## Как играть
 
-Open `index.html` in a browser. Playable cards are highlighted; click one to play it. When you have no playable card, click the deck to draw.
+Откройте `index.html` в браузере. Подходящие карты подсвечены; нажмите на карту, чтобы сыграть её. Если подходящей карты нет, нажмите на колоду, чтобы взять карту.
