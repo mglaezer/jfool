@@ -180,7 +180,9 @@ function nextRound() {
 function afterMove(start, playedFrom) {
   clearTimeout(timer);
   const g = ++generation;
+  const before = start ? handRects() : new Map();
   render();
+  shiftHand(before);
   animateEvents(start, playedFrom).then(() => {
     if (g === generation && state.current === CPU && !state.roundOver) timer = setTimeout(cpuTurn, 700 + Math.random() * 600);
   });
@@ -233,6 +235,21 @@ function flyCard(card, from, toEl, faceUp, delay) {
     { transform: `translate(${to.left - from.left}px, ${to.top - from.top}px) scale(1)` },
   ], { duration: 700, delay, easing: 'cubic-bezier(.4, 0, .2, 1)', fill: 'forwards' });
   return anim.finished.then(() => { ghost.remove(); toEl.style.visibility = ''; });
+}
+
+function handRects() {
+  return new Map([...document.getElementById('you-hand').children].map(el => [el.dataset.id, el.getBoundingClientRect()]));
+}
+
+// Cards that stay in the hand slide from where they were to where the re-render put them.
+function shiftHand(before) {
+  for (const el of document.getElementById('you-hand').children) {
+    const from = before.get(el.dataset.id);
+    if (!from) continue;
+    const to = el.getBoundingClientRect();
+    const dx = from.left - to.left, dy = from.top - to.top;
+    if (dx || dy) el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 400, easing: 'ease' });
+  }
 }
 
 const SUIT_ORDER = ['♠', '♦', '♣', '♥'];
@@ -351,6 +368,7 @@ function render() {
   youHand.innerHTML = '';
   for (const c of shownHand(YOU)) {
     const el = cardEl(c, (playable.includes(c) ? 'playable' : (state.roundOver ? '' : 'dim')));
+    el.dataset.id = c.id;
     el.onclick = () => onCardClick(c, el);
     // Lift on real pointer movement only, so a card re-rendered under a resting cursor stays down.
     el.onmousemove = () => el.classList.add('lift');
