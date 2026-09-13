@@ -88,7 +88,7 @@
   .status { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 42px; font-size: 1.1em;
             background: rgba(0,0,0,.22); border-radius: 12px; padding: 8px 14px; }
   .status .msg { flex: 1; }
-  .status .note { color: var(--gold); display: block; }
+  .status .note { color: var(--gold); display: block; min-height: 1.4em; }
   button { font: inherit; padding: 8px 18px; border-radius: 999px; border: none; background: var(--gold); color: var(--ink);
            cursor: pointer; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,.35); transition: transform .1s, filter .1s; }
   button:hover { filter: brightness(1.08); transform: translateY(-1px); }
@@ -380,21 +380,22 @@ function render() {
   document.getElementById('next-round').onclick = nextRound;
 
   const status = document.getElementById('status');
+  let text;
   if (state.roundOver) {
     const end = state.events[state.events.length - 1];
     const loser = 1 - end.winner;
-    status.textContent = (state.gameOver ? `Игра окончена. ${state.loser === YOU ? 'Вы проиграли.' : 'Вы выиграли!'}` : `Раунд окончен. ${end.winner === YOU ? 'Вы выиграли раунд.' : 'Раунд выиграл компьютер.'}`)
+    text = (state.gameOver ? `Игра окончена. ${state.loser === YOU ? 'Вы проиграли.' : 'Вы выиграли!'}` : `Раунд окончен. ${end.winner === YOU ? 'Вы выиграли раунд.' : 'Раунд выиграл компьютер.'}`)
       + (loser === YOU ? ` Вы получаете ${pointsWord(end.points)}.` : ` Компьютер получает ${pointsWord(end.points)}.`)
       + (end.bonus ? (end.winner === YOU ? ` Вы закончили дамой: минус ${end.bonus}.` : ` Компьютер закончил дамой: минус ${end.bonus}.`) : '');
-    return fitHands();
   }
-  if (!yourTurn) status.textContent = 'Ход компьютера…';
-  else if (state.drawn) status.textContent = 'Сыграйте взятую карту.';
-  else if (state.forced) status.textContent = `Первый ход: сыграйте ${cardName(state.forced)}.`;
-  else if (playable.length === 0) status.textContent = state.deck.length ? 'Нет подходящей карты. Нажмите на колоду, чтобы взять карту.' : 'Нет подходящей карты, колода пуста. Нажмите на колоду, чтобы пропустить ход.';
-  else status.textContent = 'Ваш ход. Выберите подсвеченную карту.';
-  const note = state.events.slice(seen).map(describe).filter(Boolean).join(' ');
-  if (note) status.innerHTML = `<b class="note">${note}</b> ${status.textContent}`;
+  else if (!yourTurn) text = 'Ход компьютера…';
+  else if (state.drawn) text = 'Сыграйте взятую карту.';
+  else if (state.forced) text = `Первый ход: сыграйте ${cardName(state.forced)}.`;
+  else if (playable.length === 0) text = state.deck.length ? 'Нет подходящей карты. Нажмите на колоду, чтобы взять карту.' : 'Нет подходящей карты, колода пуста. Нажмите на колоду, чтобы пропустить ход.';
+  else text = 'Ваш ход. Выберите подсвеченную карту.';
+  const note = state.roundOver ? '' : state.events.slice(seen).map(describe).filter(Boolean).join(' ');
+  // The note line is always present so the bar keeps its height and the hand below does not move.
+  status.innerHTML = `<b class="note">${note}</b>${text}`;
   fitHands();
 }
 
