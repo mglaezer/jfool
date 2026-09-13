@@ -57,6 +57,8 @@
   }
   .card.playable { cursor: pointer; box-shadow: 0 0 0 1.5px var(--gold), 0 6px 14px rgba(0,0,0,.4); }
   .card.playable.lift { transform: translateY(-12px) scale(1.04); z-index: 1; }
+  /* Keeps the pointer inside the card after the lift moves it up, so it does not drop straight back. */
+  .card.playable.lift::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 14px; }
   .card.dim { filter: saturate(.35) brightness(.78) contrast(.85); }
   .card.flying { position: fixed; z-index: 10; pointer-events: none; }
 
@@ -161,7 +163,8 @@ const SUIT_LOW = { '♠': 'пика', '♥': 'черва', '♦': 'бубна', 
 const cardsWord = n => plural(n, 'карта', 'карты', 'карт');
 const pointsWord = n => plural(n, 'очко', 'очка', 'очков');
 
-let state, timer, seen = 0, generation = 0, lastUnder = null;
+let state, timer, seen = 0, generation = 0, lastUnder = null, pointer = null, renderPointer = null;
+document.onmousemove = e => { pointer = [e.clientX, e.clientY]; };
 
 function newGame() {
   state = Game.newGame(Math.random);
@@ -363,6 +366,7 @@ function render() {
   }
 
   const yourTurn = state.current === YOU && !state.roundOver;
+  renderPointer = pointer;
   const playable = Game.legalCards(state, YOU);
   const youHand = document.getElementById('you-hand');
   youHand.innerHTML = '';
@@ -370,7 +374,8 @@ function render() {
     const el = cardEl(c, (playable.includes(c) ? 'playable' : (state.roundOver ? '' : 'dim')));
     el.dataset.id = c.id;
     el.onclick = () => onCardClick(c, el);
-    // Lift on real pointer movement only, so a card re-rendered under a resting cursor stays down.
+    // A card re-rendered under a resting cursor gets an enter event at the same position; it stays down until the pointer moves.
+    el.onmouseenter = e => { if (renderPointer && (e.clientX !== renderPointer[0] || e.clientY !== renderPointer[1])) el.classList.add('lift'); };
     el.onmousemove = () => el.classList.add('lift');
     el.onmouseleave = () => el.classList.remove('lift');
     youHand.appendChild(el);
