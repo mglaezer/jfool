@@ -56,7 +56,7 @@
     border-color: #172a52; box-shadow: 0 3px 6px rgba(0,0,0,.35), inset 0 0 0 3px #fff, inset 0 0 0 5px #23407a;
   }
   .card.playable { cursor: pointer; box-shadow: 0 0 0 1.5px var(--gold), 0 6px 14px rgba(0,0,0,.4); }
-  .card.playable:hover { transform: translateY(-12px) scale(1.04); z-index: 1; }
+  .card.playable.lift { transform: translateY(-12px) scale(1.04); z-index: 1; }
   .card.dim { filter: saturate(.35) brightness(.78) contrast(.85); }
   .card.flying { position: fixed; z-index: 10; pointer-events: none; }
 
@@ -352,6 +352,9 @@ function render() {
   for (const c of shownHand(YOU)) {
     const el = cardEl(c, (playable.includes(c) ? 'playable' : (state.roundOver ? '' : 'dim')));
     el.onclick = () => onCardClick(c, el);
+    // Lift on real pointer movement only, so a card re-rendered under a resting cursor stays down.
+    el.onmousemove = () => el.classList.add('lift');
+    el.onmouseleave = () => el.classList.remove('lift');
     youHand.appendChild(el);
   }
 
