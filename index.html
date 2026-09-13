@@ -96,7 +96,7 @@
   button:hover { filter: brightness(1.08); transform: translateY(-1px); }
   button.ghost { background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.3); box-shadow: none; }
 
-  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.25); display: flex; align-items: center; justify-content: center; }
+  .overlay { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.25); display: flex; align-items: center; justify-content: center; }
   .overlay[hidden] { display: none; }
   .dialog { background: #f7f4ec; color: var(--ink); padding: 28px 32px; border-radius: 16px; text-align: center; min-width: 280px;
             box-shadow: 0 20px 50px rgba(0,0,0,.5); animation: deal .25s ease; }
@@ -217,8 +217,11 @@ function humanMove(act, playedFrom) {
 function onCardClick(card, el) {
   if (!Game.legalCards(state, YOU).includes(card)) return;
   const from = el.getBoundingClientRect();
-  if (card.rank === 'Q') showSuitDialog(suit => humanMove(() => Game.playCard(state, YOU, card, suit), from));
-  else humanMove(() => Game.playCard(state, YOU, card, null), from);
+  if (card.rank !== 'Q') { humanMove(() => Game.playCard(state, YOU, card, null), from); return; }
+  // The queen is laid first and the suit named on top of it; the move is committed with the pick.
+  el.style.visibility = 'hidden';
+  launch(card, from, document.getElementById('top-card').lastElementChild.getBoundingClientRect(), true, 0)
+    .then(ghost => showSuitDialog(suit => { humanMove(() => Game.playCard(state, YOU, card, suit), null); ghost.remove(); }));
 }
 
 function onDeckClick() {
@@ -228,19 +231,23 @@ function onDeckClick() {
 
 // --- Animation ---
 function flyCard(card, from, toEl, faceUp, delay) {
-  const to = toEl.getBoundingClientRect();
+  toEl.style.visibility = 'hidden';
+  return launch(card, from, toEl.getBoundingClientRect(), faceUp, delay).then(ghost => { ghost.remove(); toEl.style.visibility = ''; });
+}
+
+// Resolves with the ghost still lying at its destination.
+function launch(card, from, to, faceUp, delay) {
   const ghost = faceUp ? cardEl(card) : Object.assign(document.createElement('div'), { className: 'card back' });
   ghost.classList.add('flying');
   ghost.style.left = from.left + 'px';
   ghost.style.top = from.top + 'px';
   document.body.appendChild(ghost);
-  toEl.style.visibility = 'hidden';
   const anim = ghost.animate([
     { transform: 'translate(0, 0) scale(1)' },
     { transform: `translate(${(to.left - from.left) / 2}px, ${(to.top - from.top) / 2}px) scale(1.18)` },
     { transform: `translate(${to.left - from.left}px, ${to.top - from.top}px) scale(1)` },
   ], { duration: 700, delay, easing: 'cubic-bezier(.4, 0, .2, 1)', fill: 'forwards' });
-  return anim.finished.then(() => { ghost.remove(); toEl.style.visibility = ''; });
+  return anim.finished.then(() => ghost);
 }
 
 function handRects() {
