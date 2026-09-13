@@ -353,6 +353,8 @@ function render() {
   const under = state.discard.length > 1 ? state.discard[0] : null;
   if (under) topBox.appendChild(cardEl(under, lastUnder ? 'under' : 'under tuck'));
   lastUnder = under;
+  const prev = state.discard[state.discard.length - 2];
+  if (prev && prev !== under) topBox.appendChild(cardEl(prev));
   topBox.appendChild(state.top ? cardEl(state.top) : Object.assign(document.createElement('div'), { className: 'empty' }));
   const named = document.getElementById('named-suit');
   named.innerHTML = state.namedSuit ? `${state.namedSuit}<small>заказана</small>` : '';
