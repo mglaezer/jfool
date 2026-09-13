@@ -28,8 +28,7 @@
   .links { font-size: .85em; text-align: center; opacity: .7; }
   .links a { color: var(--gold); }
   .section-title { font-size: .8em; text-transform: uppercase; letter-spacing: .12em; opacity: .7; margin-bottom: -6px; }
-  .hand { --step: calc(var(--card-w) + 14px); display: grid; grid-template-columns: repeat(auto-fill, var(--step)); row-gap: 8px;
-          min-height: calc(var(--card-h) + 14px); padding: 6px calc(var(--card-w) - var(--step)) 6px 0; }
+  .hand { display: grid; grid-template-columns: var(--card-w); min-height: calc(var(--card-h) + 14px); padding: 6px 0; }
 
   .card {
     width: var(--card-w); height: var(--card-h); border-radius: 9px; background: linear-gradient(160deg, #fff 0%, #f4f1ea 100%);
@@ -79,8 +78,11 @@
   #top-card { position: relative; width: var(--card-w); height: var(--card-h); margin: 0 auto 6px; }
   #top-card .card, #top-card .empty { position: absolute; left: 0; top: 0; margin: 0; }
   #top-card .under { transform: rotate(-6deg); filter: brightness(.9); }
-  .named { font-size: 1.2em; color: var(--gold); min-height: 1.2em; }
+  .pile.played { position: relative; }
+  .named { position: absolute; left: calc(100% + 20px); top: 50%; transform: translateY(-50%); font-size: 3.4em; line-height: 1; color: var(--gold); }
+  .named small { display: block; font-size: .26em; color: rgba(255,255,255,.7); }
   .named.red { color: #ff9aa5; }
+  @media (max-width: 560px) { .named { position: static; transform: none; font-size: 2em; } }
 
   .status { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 42px; font-size: 1.1em;
             background: rgba(0,0,0,.22); border-radius: 12px; padding: 8px 14px; }
@@ -118,7 +120,7 @@
 
   <div class="table">
     <div class="pile" id="deck-pile"><div id="deck"><div class="card back"></div></div><span id="deck-count"></span></div>
-    <div class="pile"><div id="top-card"></div><div id="named-suit" class="named"></div></div>
+    <div class="pile played"><div id="top-card"></div><div id="named-suit" class="named"></div></div>
   </div>
 
   <div class="status">
@@ -316,8 +318,8 @@ function describe(ev) {
 function fitHand(hand) {
   const n = hand.children.length;
   const cardW = parseFloat(getComputedStyle(hand).getPropertyValue('--card-w'));
-  const step = n > 1 ? Math.min(cardW + 14, Math.max(24, Math.floor((hand.clientWidth - cardW) / (n - 1)))) : cardW + 14;
-  hand.style.setProperty('--step', step + 'px');
+  const step = Math.min(cardW + 14, Math.max(24, Math.floor((hand.clientWidth - cardW) / Math.max(1, n - 1))));
+  hand.style.gridTemplateColumns = n > 1 ? `repeat(${n - 1}, ${step}px) var(--card-w)` : 'var(--card-w)';
 }
 
 let lastTop = null;
@@ -353,12 +355,12 @@ function render() {
   topBox.appendChild(state.top ? cardEl(state.top, state.top !== lastTop ? 'new' : '') : Object.assign(document.createElement('div'), { className: 'empty' }));
   lastTop = state.top;
   const named = document.getElementById('named-suit');
-  named.textContent = state.namedSuit ? `Заказана масть: ${state.namedSuit}` : '';
+  named.innerHTML = state.namedSuit ? `${state.namedSuit}<small>заказана</small>` : '';
   named.className = 'named' + (state.namedSuit && isRed(state.namedSuit) ? ' red' : '');
 
   const deckBox = document.getElementById('deck');
   deckBox.innerHTML = '';
-  if (state.bottom && state.deck[0] === state.bottom) deckBox.appendChild(cardEl(state.bottom, 'bottom'));
+  if (state.forced) deckBox.appendChild(cardEl(state.bottom, 'bottom'));
   deckBox.appendChild(Object.assign(document.createElement('div'), { className: 'card back' }));
   document.getElementById('deck-count').textContent = `в колоде: ${state.deck.length}`;
   const deckPile = document.getElementById('deck-pile');
