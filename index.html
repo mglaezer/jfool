@@ -187,7 +187,10 @@ function afterMove(start, playedFrom) {
   render();
   shiftHand(before);
   animateEvents(start, playedFrom).then(() => {
-    if (g === generation && state.current === CPU && !state.roundOver) timer = setTimeout(cpuTurn, 700 + Math.random() * 600);
+    if (g !== generation || state.roundOver) return;
+    if (state.current === CPU) timer = setTimeout(cpuTurn, 700 + Math.random() * 600);
+    // A drawn card that fits must be played, so it is played without a click once it has landed in the hand.
+    else if (state.drawn) timer = setTimeout(() => onCardClick(state.drawn, handCardEl(YOU, state.drawn)), 400);
   });
 }
 
@@ -414,7 +417,7 @@ function render() {
       + (end.bonus ? (end.winner === YOU ? ` Вы закончили дамой: минус ${end.bonus}.` : ` Компьютер закончил дамой: минус ${end.bonus}.`) : '');
   }
   else if (!yourTurn) text = 'Ход компьютера…';
-  else if (state.drawn) text = 'Сыграйте взятую карту.';
+  else if (state.drawn) text = 'Взятая карта подходит.';
   else if (state.forced) text = `Первый ход: сыграйте ${cardName(state.forced)}.`;
   else if (playable.length === 0) text = state.deck.length ? 'Нет подходящей карты. Нажмите на колоду, чтобы взять карту.' : 'Нет подходящей карты, колода пуста. Нажмите на колоду, чтобы пропустить ход.';
   else text = 'Ваш ход. Выберите подсвеченную карту.';
