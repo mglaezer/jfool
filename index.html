@@ -63,7 +63,7 @@
     border-color: #48101a; box-shadow: 0 3px 6px rgba(0,0,0,.35), inset 0 0 0 4px var(--paper), inset 0 0 0 6px var(--gold);
   }
   .card.back::after {
-    content: '101'; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 54px; height: 54px; border-radius: 50%;
+    content: 'JF'; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 54px; height: 54px; border-radius: 50%;
     background: var(--back); border: 1.5px solid var(--gold); color: var(--gold); font-family: "Oranienbaum", "Georgia", serif; font-weight: normal;
     font-size: 1.5em; display: flex; align-items: center; justify-content: center;
   }
@@ -84,7 +84,7 @@
   .pile .card { margin: 0 auto 6px; }
   #deck { position: relative; width: var(--card-w); height: var(--card-h); margin: 0 auto 6px; }
   #deck .card, #deck .empty { position: absolute; left: 0; top: 0; margin: 0; }
-  #deck .bottom { transform: translateX(-40%) rotate(90deg); }
+  #deck .bottom { transform: translate(-48%, 6%) rotate(-24deg); }
   .pile.clickable .card.back, .pile.clickable .empty { cursor: pointer; box-shadow: 0 0 0 3px var(--gold), 0 6px 14px rgba(0,0,0,.4); animation: pulse 1.2s infinite; }
   @keyframes pulse { 50% { transform: translateY(-4px); } }
   @media (prefers-reduced-motion: reduce) { .pile.clickable .card.back, .pile.clickable .empty { animation: none; } }
@@ -111,6 +111,7 @@
   button { font: inherit; padding: 8px 18px; border-radius: 999px; border: none; background: var(--gold); color: var(--ink);
            cursor: pointer; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,.35); transition: transform .1s, filter .1s; }
   button:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  button:disabled { opacity: .6; cursor: wait; transform: none; }
   button.ghost { background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.3); box-shadow: none; }
 
   .overlay { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.25); display: flex; align-items: center; justify-content: center; }
@@ -127,7 +128,7 @@
 <body>
 <div class="app">
   <header>
-    <div class="brand">♠ 101 ♥</div>
+    <div class="brand">♠ JF ♥</div>
     <div class="scores">
       <div class="score"><div class="label">Вы</div><b id="score-you">0</b><div class="bar"><i id="bar-you"></i></div></div>
       <div class="score"><div class="label">Компьютер</div><b id="score-cpu">0</b><div class="bar"><i id="bar-cpu"></i></div></div>
@@ -241,15 +242,36 @@ function onCardClick(card, el) {
     .then(ghost => showSuitDialog(suit => { humanMove(() => Game.playCard(state, YOU, card, suit), null); ghost.remove(); }));
 }
 
+const HINT_MS = 2000;
+let hintRun = 0;
+
 // Each playable card gets the chance of winning the game after it is played and the expected round points in your favour.
+// One 96-sample evaluation is too noisy for a percentage, so batches are averaged for HINT_MS, yielding between them so the page stays responsive.
 function showHint() {
-  const evals = AI.evaluateMoves(state, YOU, Math.random, { game: true });
-  const best = Math.max(...evals.map(e => e.win));
+  const run = ++hintRun;
+  const button = document.getElementById('hint');
+  button.disabled = true;
+  button.textContent = 'Считаю…';
+  const t0 = performance.now();
+  let sums = null, batches = 0;
+  (function batch() {
+    if (run !== hintRun) return;
+    const evals = AI.evaluateMoves(state, YOU, Math.random, { game: true });
+    batches++;
+    if (sums) evals.forEach((e, i) => { sums[i].win += e.win; sums[i].points += e.points; });
+    else sums = evals;
+    if (performance.now() - t0 < HINT_MS) return setTimeout(batch, 0);
+    showBadges(sums.map(e => Object.assign(e, { win: e.win / batches, points: e.points / batches })));
+  })();
+}
+
+function showBadges(evals) {
+  const ranked = evals.slice().sort((a, b) => b.win - a.win || b.points - a.points);
   for (const el of document.getElementById('you-hand').children) {
-    const e = evals.filter(e => String(e.card.id) === el.dataset.id).sort((a, b) => b.win - a.win)[0];
+    const e = ranked.find(e => String(e.card.id) === el.dataset.id);
     if (!e) continue;
     const badge = document.createElement('span');
-    badge.className = 'hint' + (e.win === best ? ' best' : '');
+    badge.className = 'hint' + (e === ranked[0] ? ' best' : '');
     const pts = Math.round(e.points);
     badge.innerHTML = `${e.namedSuit ? '→ ' + e.namedSuit + '<br>' : ''}<b>${Math.round(e.win * 100)} %</b><br>${pts < 0 ? '−' : '+'}${pointsWord(Math.abs(pts))}`;
     el.appendChild(badge);
@@ -444,8 +466,12 @@ function render() {
   deckPile.classList.toggle('clickable', yourTurn && !state.drawn && playable.length === 0);
   deckPile.onclick = onDeckClick;
 
-  document.getElementById('hint').hidden = !(yourTurn && !state.drawn && playable.length > 1);
-  document.getElementById('hint').onclick = showHint;
+  hintRun++;
+  const hint = document.getElementById('hint');
+  hint.hidden = !(yourTurn && !state.drawn && playable.length > 1);
+  hint.disabled = false;
+  hint.textContent = 'Подсказка';
+  hint.onclick = showHint;
   document.getElementById('hint-note').hidden = true;
   document.getElementById('next-round').hidden = !(state.roundOver && !state.gameOver);
   document.getElementById('next-round').onclick = nextRound;
