@@ -12,7 +12,7 @@
   :root {
     --felt: #1a5c42; --felt-light: #2c7f5c; --felt-dark: #0b3323; --gold: #e9c46a; --ink: #17130f; --red: #b3202e;
     --paper: #fbf7ee; --back: #1e2a4d;
-    --card-w: 110px; --card-h: 158px;
+    --card-w: 110px; --card-h: 165px;
   }
   body {
     margin: 0; font-family: "PT Sans", "Helvetica Neue", Arial, sans-serif; color: #fff; min-height: 100vh;
@@ -40,17 +40,10 @@
 
   .card {
     width: var(--card-w); height: var(--card-h); border-radius: 9px; background: linear-gradient(160deg, #fff 0%, var(--paper) 100%);
-    color: var(--ink); border: 1px solid #b8b3a6; position: relative; font-weight: bold; user-select: none;
+    border: 1px solid #b8b3a6; position: relative; user-select: none;
     box-shadow: 0 3px 6px rgba(0,0,0,.35), inset 0 0 0 2px #fff; transition: transform .15s ease, box-shadow .15s ease, opacity .2s;
   }
-  .card.red { color: var(--red); }
-  .card .idx { position: absolute; left: 5px; top: 3px; font-size: .8em; line-height: 1; text-align: center; }
-  .card .idx .s { font-size: 1.7em; }
-  .card .idx.b { left: auto; right: 5px; top: auto; bottom: 3px; }
-  .card .pip { position: absolute; font-size: 2em; line-height: 1; transform: translate(-50%, -50%); }
-  .card .pip.flip { transform: translate(-50%, -50%) rotate(180deg); }
-  .card .ace { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 4em; }
-  .card .court { position: absolute; left: 50%; top: 50%; width: 66px; height: 66px; transform: translate(-50%, -50%); }
+  .card img { display: block; width: 100%; height: 100%; border-radius: inherit; pointer-events: none; }
   .card.back {
     background-color: var(--back);
     background-image: repeating-linear-gradient(45deg, rgba(197,197,197,.32) 0 1.5px, transparent 1.5px 9px),
@@ -62,7 +55,7 @@
     background: var(--back); border: 1.5px solid #c5c5c5; color: #c5c5c5; font-family: "Oranienbaum", "Georgia", serif; font-weight: normal;
     font-size: 1.5em; display: flex; align-items: center; justify-content: center;
   }
-  .card.playable { cursor: pointer; box-shadow: 0 0 0 1.5px var(--gold), 0 6px 14px rgba(0,0,0,.4); }
+  .card.playable { cursor: pointer; box-shadow: 0 6px 14px rgba(0,0,0,.4); }
   .card.playable.lift { transform: translateY(-12px) scale(1.04); z-index: 1; }
   /* Keeps the pointer inside the card after the lift moves it up, so it does not drop straight back. */
   .card.playable.lift::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 14px; }
@@ -121,7 +114,6 @@
 </style>
 </head>
 <body>
-<svg style="display: none"><symbol id="jack" viewBox="802.91 350.33 41 37.87"><g transform="translate(-3.304 -3.982)scale(1.51153)"><path xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" inkscape:connector-curvature="0" sodipodi:nodetypes="sccccccccccccsssccccsccccccccs" id="path5225-5-5" d="M552.625 234.406c-7.339-.088-14.687 2.282-14.687 2.282l2.125 5.062-.407.906 8.032 1.115-.698 1.234-7.959-.911-.687 1.562 8.021 1.037-.516 1.328-8.162-.802-.812 1.844c2.875-.375 3.438 3.187 3.438 3.187-1.604-3.583-7.603-.515-6.875 2.875.684 3.188 2.375 5.063 6.812 4.063s5.75-6.125 7.875-12.125 8-4.625 8-4.625l2.625 7.312c-3.5.063-4.75 1.125-4.75 1.125-4.625 3.188-5.375 2.938-5.375 2.938s2.688 1.187 4.813.437 2.937-.75 2.937-.75l-.187 2.375c-2.625 1.313-8.938-.125-8.938-.125 3.75 3.375 9.938 2 9.938 2l.375-6.5 2.937-.625-3.062-8.812 2.25-6.313c-2.172-.75-4.617-1.064-7.063-1.094" style="fill:currentColor;fill-opacity:1;stroke:none"/><path xmlns="http://www.w3.org/2000/svg" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" sodipodi:cx="902.038" sodipodi:cy="31.081" sodipodi:rx="1.163" sodipodi:ry=".719" sodipodi:type="arc" id="path5227-5-6" d="M903.2 31.08c0 .398-.52.72-1.162.72s-1.163-.322-1.163-.72c0-.396.52-.718 1.163-.718.642 0 1.163.322 1.163.719" style="fill:currentColor;fill-opacity:1;stroke:none;stroke-width:.5;marker:none;visibility:visible;display:inline;overflow:visible" transform="translate(-662.002 203.94)scale(1.34783)"/></g></symbol><symbol id="queen" viewBox="887.5 346.65 41.61 42.88"><g transform="translate(-3.304 -3.982)scale(1.51153)"><g xmlns="http://www.w3.org/2000/svg" id="g5341-7-5" style="fill:currentColor;fill-opacity:1;stroke:none" transform="translate(-112.304 158.644)scale(.84628)"><path xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" inkscape:connector-curvature="0" id="path5283-6-5" d="m880.281 26.469-2.093 3.218-3.5-1.218L873.125 32l-3.812-.594 3.937 5.375c-.968 4.886-3.978 10.071-6 13.157C875.029 54.476 879.564 47 879.625 47l.75 1.625c-7.053 7.468-12.231 3.86-13.812 2.406-.715 1.041-1.22 1.688-1.22 1.688 11.071 6.433 17.563-3.813 17.563-3.813-4.338-5.685-2.76-8.828-1.562-12.343s7.25-2.094 7.25-2.094l2.375 7.343-1.813 1.407-.343 4.656c-1.87.449-5.22-.406-5.22-.406 1.946 2.244 6.438 2.031 6.438 2.031l.5-5.469 2.344-1.281-2.844-8.219 2.094-6.875-3.219 1.719-2.468-2.844-3 2.469z" style="fill:currentColor;fill-opacity:1;stroke:none" transform="translate(-193.43 55.367)scale(1.18164)"/><path xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" sodipodi:cx="854.892" sodipodi:cy="101.613" sodipodi:rx="1.856" sodipodi:ry=".928" sodipodi:type="arc" id="path5285-9-1" d="M856.748 101.613c0 .512-.83.928-1.856.928-1.025 0-1.856-.416-1.856-.928 0-.513.831-.928 1.856-.928s1.856.415 1.856.928" style="fill:currentColor;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:.5;marker:none;visibility:visible;display:inline;overflow:visible"/></g></g></symbol><symbol id="king" viewBox="975.56 347.62 37.16 37.71"><g transform="translate(-3.304 -3.982)scale(1.51153)"><path xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" inkscape:connector-curvature="0" sodipodi:nodetypes="cccccccccccccccccccccscccccccccccccccccccccccccccsssss" id="path5003-2-6" d="m666.164 232.617-2.694 2.455-2.924-2.378-2.064 2.77-3.3-2.188-1.765 3.853-3.4-.637 2.693 3.8-.468 1.797 16.377.028 2.449 7.36s-5.14-.553-7.514 1.98c0 0-3.251-2.378-3.568-4.198l1.35-4.037h-1.266l-1.35 4.037s1.188 3.402 4.274 4.827l-.391 1.19s2.531-3.164 6.093-2.61c0 0-.315 3.002.952 4.981 0 0-7.915 2.057-11.635-6.016-3.435 7.91-6.616 7.35-8.276 5.736-2.208-2.148.124-6.34 3.764-3.204-.705-1.884-1.536-2.807-3.722-2.21-6.558 4.468 3.32 13.23 7.996 2.448 6.649 6.807 13.454 3.883 13.454 3.883-1.188-1.742-1.665-5.779-1.665-5.779l2.616-.315-2.456-8.234.077-2.931 1.98-4.981-3.4 1.504zm-8.626 10.444-1.428 3.96 1.344-.077 1.35-3.883zm-2.77.007-1.743 4.982 1.267-.077 1.818-4.905zm-2.687.077-1.89 5.681.931-.063 1.98-5.54zm14.635.238c-.612 0-1.105.313-1.105.707s.493.713 1.105.713 1.106-.32 1.106-.713c0-.394-.494-.707-1.106-.707z" style="fill:currentColor;fill-opacity:1;stroke:currentColor;stroke-width:.30000001;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"/></g></symbol></svg>
 <div class="app">
   <header>
     <div class="brand">♠ JF ♥</div>
@@ -165,7 +157,7 @@ const { SUITS, RANKS, LOSING_SCORE } = Game;
 const YOU = 0, CPU = 1;
 const RANK_LABEL = { J: 'В', Q: 'Д', K: 'К', A: 'Т' };
 
-const COURT_FILE = { K: 'king', Q: 'queen', J: 'jack' };
+const SUIT_FILE = { '♠': 'S', '♥': 'H', '♦': 'D', '♣': 'C' };
 function rankLabel(c) { return RANK_LABEL[c.rank] || c.rank; }
 function cardName(c) { return rankLabel(c) + c.suit; }
 
@@ -363,30 +355,10 @@ function showSuitDialog(onPick) {
 // --- Rendering ---
 function isRed(suit) { return suit === '♥' || suit === '♦'; }
 
-const SIDES = [[0, 0], [2, 0], [0, 3], [2, 3], [0, 6], [2, 6]];
-const SIDES4 = [[0, 0], [2, 0], [0, 2], [2, 2], [0, 4], [2, 4], [0, 6], [2, 6]];
-const PIPS = {
-  '6': SIDES,
-  '7': [...SIDES, [1, 1.5]],
-  '8': [...SIDES, [1, 1.5], [1, 4.5]],
-  '9': [...SIDES4, [1, 3]],
-  '10': [...SIDES4, [1, 1], [1, 5]],
-};
-
 function cardEl(c, cls = '') {
   const el = document.createElement('div');
-  el.className = 'card ' + cls + (isRed(c.suit) ? ' red' : '');
-  const idx = `${rankLabel(c)}<br><span class="s">${c.suit}</span>`;
-  let middle;
-  if (c.rank === 'A') {
-    middle = `<span class="ace">${c.suit}</span>`;
-  } else if (PIPS[c.rank]) {
-    middle = PIPS[c.rank].map(([col, row]) =>
-      `<span class="pip${row > 3 ? ' flip' : ''}" style="left:${31 + col * 19}%;top:${18 + row / 6 * 64}%">${c.suit}</span>`).join('');
-  } else {
-    middle = `<svg class="court"><use href="#${COURT_FILE[c.rank]}"/></svg>`;
-  }
-  el.innerHTML = `<span class="idx">${idx}</span>${middle}<span class="idx b">${idx}</span>`;
+  el.className = 'card ' + cls;
+  el.innerHTML = `<img src="cards/${c.rank}${SUIT_FILE[c.suit]}.svg" alt="${cardName(c)}">`;
   return el;
 }
 
