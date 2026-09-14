@@ -11,7 +11,7 @@
   * { box-sizing: border-box; }
   :root {
     --felt: #1a5c42; --felt-light: #2c7f5c; --felt-dark: #0b3323; --gold: #e9c46a; --ink: #17130f; --red: #b3202e;
-    --paper: #fbf7ee; --back: #6e1a27;
+    --paper: #fbf7ee; --back: #1e2a4d;
     --card-w: 110px; --card-h: 158px;
   }
   body {
@@ -53,13 +53,13 @@
   .card .court { position: absolute; top: 14px; left: 50%; height: calc(var(--card-h) - 28px); transform: translateX(-50%); }
   .card.back {
     background-color: var(--back);
-    background-image: repeating-linear-gradient(45deg, rgba(233,196,106,.32) 0 1.5px, transparent 1.5px 9px),
-                      repeating-linear-gradient(-45deg, rgba(233,196,106,.32) 0 1.5px, transparent 1.5px 9px);
-    border-color: #48101a; box-shadow: 0 3px 6px rgba(0,0,0,.35), inset 0 0 0 4px var(--paper), inset 0 0 0 6px var(--gold);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='none' stroke='%23fff' stroke-width='.9'%3E%3Ccircle cx='10' cy='6.6' r='2'/%3E%3Ccircle cx='10' cy='13.4' r='2'/%3E%3Ccircle cx='6.6' cy='10' r='2'/%3E%3Ccircle cx='13.4' cy='10' r='2'/%3E%3Ccircle cx='10' cy='10' r='.8' fill='%23fff' stroke='none'/%3E%3Cpath d='M0 2.4L2.4 0M17.6 0L20 2.4M20 17.6L17.6 20M2.4 20L0 17.6'/%3E%3Ccircle cx='10' cy='0' r='.9' fill='%23fff' stroke='none'/%3E%3Ccircle cx='10' cy='20' r='.9' fill='%23fff' stroke='none'/%3E%3Ccircle cx='0' cy='10' r='.9' fill='%23fff' stroke='none'/%3E%3Ccircle cx='20' cy='10' r='.9' fill='%23fff' stroke='none'/%3E%3C/svg%3E");
+    background-position: center; background-size: 20px 20px;
+    border-color: #fff; box-shadow: 0 3px 6px rgba(0,0,0,.35), inset 0 0 0 5px #fff, inset 0 0 0 7px var(--back), inset 0 0 0 8px #fff;
   }
   .card.back::after {
     content: 'JF'; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 54px; height: 54px; border-radius: 50%;
-    background: var(--back); border: 1.5px solid var(--gold); color: var(--gold); font-family: "Oranienbaum", "Georgia", serif; font-weight: normal;
+    background: var(--back); border: 1.5px solid #fff; box-shadow: 0 0 0 4px var(--back), 0 0 0 5px #fff; color: #fff; font-family: "Oranienbaum", "Georgia", serif; font-weight: normal;
     font-size: 1.5em; display: flex; align-items: center; justify-content: center;
   }
   .card.playable { cursor: pointer; box-shadow: 0 0 0 1.5px var(--gold), 0 6px 14px rgba(0,0,0,.4); }
