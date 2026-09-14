@@ -247,7 +247,7 @@ function showHint() {
   let sums = null, batches = 0;
   (function batch() {
     if (run !== hintRun) return;
-    const evals = AI.evaluateMoves(state, YOU, Math.random, { game: true });
+    const evals = AI.evaluateMoves(state, YOU, Math.random);
     batches++;
     if (sums) evals.forEach((e, i) => { sums[i].win += e.win; sums[i].points += e.points; });
     else sums = evals;

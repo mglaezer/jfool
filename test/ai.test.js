@@ -157,7 +157,7 @@ function tournament(policyA, policyB, rounds, seed) {
 
 const fast = { samples: 24 };
 
-// Measured over 1000 rounds: MC(96) beats greedy 60% and concedes ~9 points per round vs ~16.
+// Measured over 1000 rounds: MC(96) beats greedy 62% and concedes ~10 points per round vs ~17.
 test('monte carlo beats the greedy baseline over many rounds', () => {
   const rng = G.mulberry32(11);
   const mc = (s, p) => AI.monteCarloMove(s, p, rng, { samples: 48 });
@@ -166,7 +166,7 @@ test('monte carlo beats the greedy baseline over many rounds', () => {
   assert.ok(r.pointsA * 1.2 < r.pointsB, `points ${r.pointsA} vs ${r.pointsB}`);
 });
 
-// Measured over 6000 rounds: the heuristic alone only edges greedy (52%); the strength comes from the rollouts.
+// Measured over 6000 rounds: the heuristic alone only edges greedy (53%); the strength comes from the rollouts.
 test('heuristic is no worse than the greedy baseline', () => {
   const rng = G.mulberry32(12);
   const h = (s, p) => AI.heuristicMove(s, p, rng);
@@ -174,7 +174,7 @@ test('heuristic is no worse than the greedy baseline', () => {
   assert.ok(r.winsA / 2000 >= 0.5, `win rate ${r.winsA / 2000}`);
 });
 
-// Measured over 1000 rounds: MC(96) beats the heuristic 63% and concedes ~6 points per round vs ~17.
+// Measured over 1000 rounds: MC(96) beats the heuristic 62% and concedes ~10 points per round vs ~16.
 test('monte carlo beats the heuristic it rolls out with', () => {
   const rng = G.mulberry32(13);
   const mc = (s, p) => AI.monteCarloMove(s, p, rng, { samples: 48 });
@@ -236,9 +236,13 @@ test('monte carlo decides quickly at browser settings', () => {
   assert.ok(ms < 250, `${ms} ms per decision`);
 });
 
-test('softmax pick never chooses a move far below the best', () => {
+test('softmax pick never chooses a move outside the blunder gap and mixes the moves inside it', () => {
   const rng = G.mulberry32(1);
-  for (let i = 0; i < 200; i++) assert.notEqual(AI.softmaxPick([0, 0.01, -1], 0.05, 0.35, rng), 2);
+  // A temperature far above the default keeps the move just outside the gap within softmax reach, so only the gap can exclude it.
+  const picks = [0, 0, 0, 0];
+  for (let i = 0; i < 2000; i++) picks[AI.softmaxPick([0, 0.01, -0.02, -0.045], 0.05, AI.DEFAULTS.blunderGap, rng)]++;
+  assert.equal(picks[3], 0);
+  assert.ok(picks[2] > 0);
 });
 
 test('monte carlo never looks at the opponent hand or the deck order', () => {
@@ -252,16 +256,16 @@ test('monte carlo never looks at the opponent hand or the deck order', () => {
 
 test('evaluateMoves: a card that busts the opponent wins every game', () => {
   const s = makeState({ hands: [['9♠'], ['7♣', 'K♦']], top: '9♥', scores: [0, 100] });
-  const e = AI.evaluateMoves(s, ME, G.mulberry32(1), { samples: 24, game: true }).find(m => m.card === card('9♠'));
+  const e = AI.evaluateMoves(s, ME, G.mulberry32(1), { samples: 24 }).find(m => m.card === card('9♠'));
   assert.equal(e.win, 1);
   assert.ok(e.points > 0);
 });
 
-test('evaluateMoves: one entry per candidate, and the top utility is what a cold monteCarloMove picks', () => {
+test('evaluateMoves: one entry per candidate, and the top win chance is what a cold monteCarloMove picks', () => {
   const s = makeState({ hands: [['9♠', 'Q♥', '6♦', 'A♠'], ['7♣', 'K♦', '8♠']], top: '9♥' });
   const evals = AI.evaluateMoves(s, ME, G.mulberry32(7), fast);
   assert.equal(evals.length, AI.candidates(s, ME).length);
-  const top = evals.reduce((a, b) => b.utility > a.utility ? b : a);
+  const top = evals.reduce((a, b) => b.win > a.win ? b : a);
   const mv = AI.monteCarloMove(s, ME, G.mulberry32(7), { samples: 24, temperature: 1e-9 });
   assert.deepEqual(mv, { card: top.card, namedSuit: top.namedSuit });
 });
