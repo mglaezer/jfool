@@ -155,42 +155,55 @@
     playCard(world, p, mv.card, mv.namedSuit);
   }
 
-  function utility(world, me, base) {
+  function netPoints(world, me, base) {
     const opp = 1 - me;
-    if (world.roundOver) {
-      const my = world.scores[me], other = world.scores[opp];
-      let u = ((other - base[opp]) - (my - base[me])) / 40;
-      if (my >= LOSING_SCORE) u -= 3;
-      else if (other >= LOSING_SCORE) u += 3;
-      return u;
-    }
-    return (handPoints(world.hands[opp]) - handPoints(world.hands[me])) / 40;
+    if (world.roundOver) return (world.scores[opp] - base[opp]) - (world.scores[me] - base[me]);
+    return handPoints(world.hands[opp]) - handPoints(world.hands[me]);
   }
 
-  function rollout(world, me, rng, base, maxSteps) {
+  function utility(world, me, base) {
+    let u = netPoints(world, me, base) / 40;
+    if (world.roundOver && world.scores[me] >= LOSING_SCORE) u -= 3;
+    else if (world.roundOver && world.scores[1 - me] >= LOSING_SCORE) u += 3;
+    return u;
+  }
+
+  function rollout(world, rng, maxSteps) {
     for (let i = 0; i < maxSteps && !world.roundOver; i++) stepRollout(world, rng);
-    return utility(world, me, base);
+    return world;
   }
 
   const DEFAULTS = { samples: 96, temperature: 0.05, blunderGap: 0.35, maxSteps: 400 };
 
-  function monteCarloMove(state, player, rng, opts) {
+  // Every candidate move with its mean utility, expected round points in the player's favour
+  // (positive when the opponent is expected to be charged more) and the share of rollouts the player wins.
+  function evaluateMoves(state, player, rng, opts) {
     const o = Object.assign({}, DEFAULTS, opts);
     const moves = candidates(state, player);
-    if (moves.length === 1) return moves[0];
     const slots = opponentSlots(state.events, player);
     const base = state.scores.slice();
-    const totals = new Array(moves.length).fill(0);
+    const sums = moves.map(() => ({ utility: 0, points: 0, wins: 0 }));
     for (let k = 0; k < o.samples; k++) {
       const world = sampleWorld(state, player, slots, rng);
       moves.forEach((mv, i) => {
         const w = cloneState(world);
         playCard(w, player, mv.card, mv.namedSuit);
-        totals[i] += rollout(w, player, rng, base, o.maxSteps);
+        rollout(w, rng, o.maxSteps);
+        sums[i].utility += utility(w, player, base);
+        sums[i].points += netPoints(w, player, base);
+        if (w.roundOver && w.winner === player) sums[i].wins++;
       });
     }
-    const means = totals.map(t => t / o.samples);
-    return moves[softmaxPick(means, o.temperature, o.blunderGap, rng)];
+    return moves.map((mv, i) => ({ card: mv.card, namedSuit: mv.namedSuit,
+      utility: sums[i].utility / o.samples, points: sums[i].points / o.samples, win: sums[i].wins / o.samples }));
+  }
+
+  function monteCarloMove(state, player, rng, opts) {
+    const o = Object.assign({}, DEFAULTS, opts);
+    const moves = candidates(state, player);
+    if (moves.length === 1) return moves[0];
+    const evals = evaluateMoves(state, player, rng, o);
+    return moves[softmaxPick(evals.map(e => e.utility), o.temperature, o.blunderGap, rng)];
   }
 
   function softmaxPick(values, temperature, gap, rng) {
@@ -205,7 +218,7 @@
   }
 
   return {
-    greedyMove, heuristicMove, monteCarloMove, candidates, scoreMove,
+    greedyMove, heuristicMove, monteCarloMove, evaluateMoves, candidates, scoreMove,
     opponentSlots, sampleWorld, unseenCards, suitShortage, violates, softmaxPick, utility, DEFAULTS,
   };
 });
