@@ -4,36 +4,43 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>101 — карточная игра</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oranienbaum&family=PT+Sans:wght@400;700&display=swap">
 <style>
   * { box-sizing: border-box; }
   :root {
-    --felt: #1f6b45; --felt-dark: #0f3d27; --gold: #f2c94c; --ink: #1a1a1a; --red: #c8102e;
+    --felt: #1a5c42; --felt-light: #2c7f5c; --felt-dark: #0b3323; --gold: #e9c46a; --ink: #17130f; --red: #b3202e;
+    --paper: #fbf7ee; --back: #6e1a27;
     --card-w: 110px; --card-h: 158px;
   }
   body {
-    margin: 0; font-family: "Georgia", "Palatino", serif; color: #fff; min-height: 100vh;
-    background: radial-gradient(ellipse at 50% 30%, #2a8a5a 0%, var(--felt) 45%, var(--felt-dark) 100%);
+    margin: 0; font-family: "PT Sans", "Helvetica Neue", Arial, sans-serif; color: #fff; min-height: 100vh;
+    background: radial-gradient(ellipse at 50% 30%, var(--felt-light) 0%, var(--felt) 45%, var(--felt-dark) 100%);
+  }
+  /* Fine grain over the gradient so the felt reads as cloth rather than a flat fill. */
+  body::before {
+    content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .09;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
   .app { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 14px; }
 
   header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
-  .brand { font-size: 1.5em; letter-spacing: .08em; color: var(--gold); text-shadow: 0 2px 6px rgba(0,0,0,.5); }
+  .brand { font-family: "Oranienbaum", "Georgia", serif; font-size: 2.4em; line-height: 1; color: var(--gold); text-shadow: 0 2px 6px rgba(0,0,0,.5); }
   .scores { display: flex; gap: 12px; flex-wrap: wrap; }
   .score { background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.15); border-radius: 12px; padding: 8px 14px; min-width: 130px; }
-  .score .label { font-size: .8em; opacity: .8; letter-spacing: .05em; text-transform: uppercase; }
-  .score b { font-size: 1.5em; display: block; }
+  .score .label { font-size: .85em; opacity: .8; }
+  .score b { font-family: "Oranienbaum", "Georgia", serif; font-weight: normal; font-size: 1.9em; line-height: 1.1; display: block; }
   .score .bar { height: 5px; background: rgba(255,255,255,.15); border-radius: 3px; margin-top: 6px; overflow: hidden; }
   .score .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), #e0523e); width: 0; transition: width .5s ease; }
 
   .links { font-size: .85em; text-align: center; opacity: .7; }
   .links a { color: var(--gold); }
-  .section-title { font-size: .8em; text-transform: uppercase; letter-spacing: .12em; opacity: .7; margin-bottom: -6px; }
-  .hand { display: grid; grid-template-columns: var(--card-w); min-height: calc(var(--card-h) + 14px); padding: 6px 0; }
+  .hand { display: grid; grid-template-columns: var(--card-w); justify-content: center; min-height: calc(var(--card-h) + 14px); padding: 6px 0; }
 
   .card {
-    width: var(--card-w); height: var(--card-h); border-radius: 9px; background: linear-gradient(160deg, #fff 0%, #f4f1ea 100%);
+    width: var(--card-w); height: var(--card-h); border-radius: 9px; background: linear-gradient(160deg, #fff 0%, var(--paper) 100%);
     color: var(--ink); border: 1px solid #b8b3a6; position: relative; font-weight: bold; user-select: none;
-    font-family: "Helvetica Neue", Arial, sans-serif;
     box-shadow: 0 3px 6px rgba(0,0,0,.35), inset 0 0 0 2px #fff; transition: transform .15s ease, box-shadow .15s ease, opacity .2s;
   }
   .card.red { color: var(--red); }
@@ -45,15 +52,20 @@
   .card .ace { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 4em; }
   .card .court { position: absolute; left: 22px; right: 22px; top: 14px; bottom: 14px; border: 1px solid currentColor; border-radius: 3px;
                  display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 2px 0; font-size: 1em;
-                 background: linear-gradient(180deg, rgba(242,201,76,.25), rgba(242,201,76,.05)); }
-  .card .court b { font-family: Georgia, serif; font-size: 2.2em; line-height: 1; }
+                 background: linear-gradient(180deg, rgba(233,196,106,.3), rgba(233,196,106,.06)); }
+  .card .court b { font-family: "Oranienbaum", "Georgia", serif; font-weight: normal; font-size: 2.8em; line-height: 1; }
   .card .court .s { font-size: 1.7em; line-height: 1; }
   .card .court .s:last-child { transform: rotate(180deg); }
   .card.back {
-    background: #23407a;
-    background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.08) 0 5px, transparent 5px 10px),
-                      repeating-linear-gradient(-45deg, rgba(255,255,255,.08) 0 5px, transparent 5px 10px);
-    border-color: #172a52; box-shadow: 0 3px 6px rgba(0,0,0,.35), inset 0 0 0 3px #fff, inset 0 0 0 5px #23407a;
+    background-color: var(--back);
+    background-image: repeating-linear-gradient(45deg, rgba(233,196,106,.32) 0 1.5px, transparent 1.5px 9px),
+                      repeating-linear-gradient(-45deg, rgba(233,196,106,.32) 0 1.5px, transparent 1.5px 9px);
+    border-color: #48101a; box-shadow: 0 3px 6px rgba(0,0,0,.35), inset 0 0 0 4px var(--paper), inset 0 0 0 6px var(--gold);
+  }
+  .card.back::after {
+    content: '101'; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 54px; height: 54px; border-radius: 50%;
+    background: var(--back); border: 1.5px solid var(--gold); color: var(--gold); font-family: "Oranienbaum", "Georgia", serif; font-weight: normal;
+    font-size: 1.5em; display: flex; align-items: center; justify-content: center;
   }
   .card.playable { cursor: pointer; box-shadow: 0 0 0 1.5px var(--gold), 0 6px 14px rgba(0,0,0,.4); }
   .card.playable.lift { transform: translateY(-12px) scale(1.04); z-index: 1; }
@@ -75,6 +87,7 @@
   #deck .bottom { transform: translateX(-40%) rotate(90deg); }
   .pile.clickable .card.back, .pile.clickable .empty { cursor: pointer; box-shadow: 0 0 0 3px var(--gold), 0 6px 14px rgba(0,0,0,.4); animation: pulse 1.2s infinite; }
   @keyframes pulse { 50% { transform: translateY(-4px); } }
+  @media (prefers-reduced-motion: reduce) { .pile.clickable .card.back, .pile.clickable .empty { animation: none; } }
   .pile .empty { width: var(--card-w); height: var(--card-h); border-radius: 9px; border: 2px dashed rgba(255,255,255,.3); margin: 0 auto 6px; }
   #top-card { position: relative; width: var(--card-w); height: var(--card-h); margin: 0 auto 6px; }
   #top-card .card, #top-card .empty { position: absolute; left: 0; top: 0; margin: 0; }
@@ -87,8 +100,8 @@
   .named.red { color: #ff9aa5; }
   @media (max-width: 560px) { .named { position: static; transform: none; font-size: 1.7em; } }
 
-  .status { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 42px; font-size: 1.1em;
-            background: rgba(0,0,0,.22); border-radius: 12px; padding: 8px 14px; }
+  .status { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; min-height: 42px; font-size: 1.1em;
+            text-align: center; padding: 4px 14px; }
   .status .msg { flex: 1; }
   .status .note { color: var(--gold); display: block; min-height: 1.4em; }
   button { font: inherit; padding: 8px 18px; border-radius: 999px; border: none; background: var(--gold); color: var(--ink);
@@ -98,9 +111,9 @@
 
   .overlay { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.25); display: flex; align-items: center; justify-content: center; }
   .overlay[hidden] { display: none; }
-  .dialog { background: #f7f4ec; color: var(--ink); padding: 28px 32px; border-radius: 16px; text-align: center; min-width: 280px;
+  .dialog { background: var(--paper); color: var(--ink); padding: 28px 32px; border-radius: 16px; text-align: center; min-width: 280px;
             box-shadow: 0 20px 50px rgba(0,0,0,.5); animation: deal .25s ease; }
-  .dialog h2 { margin: 0 0 16px; font-weight: normal; letter-spacing: .05em; }
+  .dialog h2 { margin: 0 0 16px; font-family: "Oranienbaum", "Georgia", serif; font-weight: normal; font-size: 1.9em; }
   .suits { display: flex; gap: 12px; justify-content: center; }
   .suits button { font-size: 2.2em; padding: 10px 18px; background: #fff; border: 2px solid #ddd; border-radius: 12px; color: var(--ink); }
   .suits button.red { color: var(--red); }
@@ -118,7 +131,6 @@
     <button id="new-game" class="ghost">Новая игра</button>
   </header>
 
-  <div class="section-title" id="cpu-title">Компьютер</div>
   <div class="hand" id="cpu-hand"></div>
 
   <div class="table">
@@ -131,7 +143,6 @@
     <button id="next-round" hidden>Следующий раунд</button>
   </div>
 
-  <div class="section-title">Вы</div>
   <div class="hand" id="you-hand"></div>
 
   <footer class="links"><a href="RULES.md">Правила</a> · <a href="STRATEGY.md">Стратегия компьютера</a></footer>
@@ -368,7 +379,6 @@ function render() {
   document.getElementById('bar-cpu').style.width = Math.min(100, Math.max(0, state.scores[CPU]) / LOSING_SCORE * 100) + '%';
 
   const cpuCards = state.hands[CPU];
-  document.getElementById('cpu-title').textContent = `Компьютер · ${cardsWord(cpuCards.length)}`;
   const cpuHand = document.getElementById('cpu-hand');
   cpuHand.innerHTML = '';
   for (const c of cpuCards) {
