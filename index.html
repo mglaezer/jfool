@@ -236,6 +236,8 @@ function onCardClick(card, el) {
   if (!Game.legalCards(state, YOU).includes(card)) return;
   const from = el.getBoundingClientRect();
   if (card.rank !== 'Q') { humanMove(() => Game.playCard(state, YOU, card, null), from); return; }
+  // The named suit is irrelevant when the queen ends the round, so it is not asked for.
+  if (state.hands[YOU].length === 1) { humanMove(() => Game.playCard(state, YOU, card, card.suit), from); return; }
   // The queen is laid first and the suit named on top of it; the move is committed with the pick.
   el.style.visibility = 'hidden';
   launch(card, from, document.getElementById('top-card').lastElementChild.getBoundingClientRect(), true, 0)
