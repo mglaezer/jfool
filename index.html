@@ -298,12 +298,12 @@ function launch(card, from, to, faceUp, delay) {
 }
 
 function handRects() {
-  return new Map([...document.getElementById('you-hand').children].map(el => [el.dataset.id, el.getBoundingClientRect()]));
+  return new Map([...document.querySelectorAll('.hand .card')].map(el => [el.dataset.id, el.getBoundingClientRect()]));
 }
 
 // Cards that stay in the hand slide from where they were to where the re-render put them.
 function shiftHand(before) {
-  for (const el of document.getElementById('you-hand').children) {
+  for (const el of document.querySelectorAll('.hand .card')) {
     const from = before.get(el.dataset.id);
     if (!from) continue;
     const to = el.getBoundingClientRect();
@@ -398,7 +398,9 @@ function render() {
   const cpuHand = document.getElementById('cpu-hand');
   cpuHand.innerHTML = '';
   for (const c of cpuCards) {
-    cpuHand.appendChild(state.roundOver ? cardEl(c) : Object.assign(document.createElement('div'), { className: 'card back' }));
+    const el = state.roundOver ? cardEl(c) : Object.assign(document.createElement('div'), { className: 'card back' });
+    el.dataset.id = c.id;
+    cpuHand.appendChild(el);
   }
 
   const yourTurn = state.current === YOU && !state.roundOver;
