@@ -240,7 +240,6 @@ function onCardClick(card, el) {
 }
 
 // Each playable card gets its equity: expected round points in your favour and the share of simulated rounds you win.
-// Moves within the sampling noise of the best are marked as best too.
 function showHint() {
   const evals = AI.evaluateMoves(state, YOU, Math.random);
   const best = Math.max(...evals.map(e => e.points));
@@ -249,7 +248,7 @@ function showHint() {
     if (!e) continue;
     const pts = Math.round(e.points);
     const badge = document.createElement('span');
-    badge.className = 'hint' + (e.points >= best - 4 ? ' best' : '');
+    badge.className = 'hint' + (e.points === best ? ' best' : '');
     badge.innerHTML = `${e.namedSuit ? '→ ' + e.namedSuit + '<br>' : ''}${pts < 0 ? '−' : '+'}${pointsWord(Math.abs(pts))}<br>выигрыш ${Math.round(e.win * 100)} %`;
     el.appendChild(badge);
   }
