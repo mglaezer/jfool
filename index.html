@@ -50,12 +50,7 @@
   .card .pip { position: absolute; font-size: 2em; line-height: 1; transform: translate(-50%, -50%); }
   .card .pip.flip { transform: translate(-50%, -50%) rotate(180deg); }
   .card .ace { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 4em; }
-  .card .court { position: absolute; left: 22px; right: 22px; top: 14px; bottom: 14px; border: 1px solid currentColor; border-radius: 3px;
-                 display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 2px 0; font-size: 1em;
-                 background: linear-gradient(180deg, rgba(233,196,106,.3), rgba(233,196,106,.06)); }
-  .card .court b { font-family: "Oranienbaum", "Georgia", serif; font-weight: normal; font-size: 2.8em; line-height: 1; }
-  .card .court .s { font-size: 1.7em; line-height: 1; }
-  .card .court .s:last-child { transform: rotate(180deg); }
+  .card .court { position: absolute; top: 14px; left: 50%; height: calc(var(--card-h) - 28px); transform: translateX(-50%); }
   .card.back {
     background-color: var(--back);
     background-image: repeating-linear-gradient(45deg, rgba(233,196,106,.32) 0 1.5px, transparent 1.5px 9px),
@@ -148,7 +143,7 @@
     <button id="hint" class="ghost" hidden>Подсказка</button>
     <button id="next-round" hidden>Следующий раунд</button>
   </div>
-  <div class="hint-note" id="hint-note" hidden>Проценты — шанс выиграть всю игру (не раунд), если сыграть эту карту. Очки — ожидаемая разница очков за этот раунд в вашу пользу.</div>
+  <div class="hint-note" id="hint-note" hidden>Проценты — шанс выиграть всю игру (не раунд). Очки — ожидаемая разница очков за этот раунд в вашу пользу.</div>
 
   <div class="hand" id="you-hand"></div>
 
@@ -169,6 +164,8 @@ const { SUITS, RANKS, LOSING_SCORE } = Game;
 const YOU = 0, CPU = 1;
 const RANK_LABEL = { J: 'В', Q: 'Д', K: 'К', A: 'Т' };
 
+const COURT_FILE = { K: 'king', Q: 'queen', J: 'jack' };
+const SUIT_FILE = { '♠': 'spades', '♥': 'hearts', '♦': 'diamonds', '♣': 'clubs' };
 function rankLabel(c) { return RANK_LABEL[c.rank] || c.rank; }
 function cardName(c) { return rankLabel(c) + c.suit; }
 
@@ -387,7 +384,7 @@ function cardEl(c, cls = '') {
     middle = PIPS[c.rank].map(([col, row]) =>
       `<span class="pip${row > 3 ? ' flip' : ''}" style="left:${31 + col * 19}%;top:${18 + row / 6 * 64}%">${c.suit}</span>`).join('');
   } else {
-    middle = `<span class="court"><span class="s">${c.suit}</span><b>${rankLabel(c)}</b><span class="s">${c.suit}</span></span>`;
+    middle = `<img class="court" src="cards/${COURT_FILE[c.rank]}_${SUIT_FILE[c.suit]}.svg" alt="">`;
   }
   el.innerHTML = `<span class="idx">${idx}</span>${middle}<span class="idx b">${idx}</span>`;
   return el;
