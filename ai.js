@@ -2,7 +2,7 @@
   if (typeof module === 'object' && module.exports) module.exports = factory(require('./game.js'));
   else root.AI = factory(root.Game);
 })(typeof self !== 'undefined' ? self : this, function (G) {
-  const { SUITS, DECK, HAND_SIZE, LOSING_SCORE, cardPoints, handPoints, matches, legalCards, playCard, takeDraw, cloneState, shuffle } = G;
+  const { SUITS, DECK, HAND_SIZE, LOSING_SCORE, cardPoints, handPoints, matches, legalCards, playCard, takeDraw, startRound, cloneState, shuffle } = G;
 
   // --- Baseline: the original computer player (highest points, most-held suit) ---
   function greedyMove(state, player) {
@@ -170,13 +170,20 @@
 
   function rollout(world, rng, maxSteps) {
     for (let i = 0; i < maxSteps && !world.roundOver; i++) stepRollout(world, rng);
-    return world;
+  }
+
+  function finishGame(world, rng, maxSteps) {
+    while (world.roundOver && !world.gameOver) {
+      startRound(world, world.winner, rng);
+      rollout(world, rng, maxSteps);
+    }
   }
 
   const DEFAULTS = { samples: 96, temperature: 0.05, blunderGap: 0.35, maxSteps: 400 };
 
-  // Every candidate move with its mean utility, expected round points in the player's favour
-  // (positive when the opponent is expected to be charged more) and the share of rollouts the player wins.
+  // Every candidate move with its mean round utility, the expected round points in the player's favour
+  // (positive when the opponent is expected to be charged more) and, when `game` is set, the share of games
+  // the player goes on to win after it (the round rollouts continue through further rounds until someone busts).
   function evaluateMoves(state, player, rng, opts) {
     const o = Object.assign({}, DEFAULTS, opts);
     const moves = candidates(state, player);
@@ -191,7 +198,10 @@
         rollout(w, rng, o.maxSteps);
         sums[i].utility += utility(w, player, base);
         sums[i].points += netPoints(w, player, base);
-        if (w.roundOver && w.winner === player) sums[i].wins++;
+        if (o.game) {
+          finishGame(w, rng, o.maxSteps);
+          if (w.loser === 1 - player) sums[i].wins++;
+        }
       });
     }
     return moves.map((mv, i) => ({ card: mv.card, namedSuit: mv.namedSuit,

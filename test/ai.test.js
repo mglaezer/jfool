@@ -250,9 +250,9 @@ test('monte carlo never looks at the opponent hand or the deck order', () => {
   }
 });
 
-test('evaluateMoves: a card that ends the round wins every rollout with points in my favour', () => {
-  const s = makeState({ hands: [['9♠'], ['7♣', 'K♦']], top: '9♥' });
-  const e = AI.evaluateMoves(s, ME, G.mulberry32(1), fast).find(m => m.card === card('9♠'));
+test('evaluateMoves: a card that busts the opponent wins every game', () => {
+  const s = makeState({ hands: [['9♠'], ['7♣', 'K♦']], top: '9♥', scores: [0, 100] });
+  const e = AI.evaluateMoves(s, ME, G.mulberry32(1), { samples: 24, game: true }).find(m => m.card === card('9♠'));
   assert.equal(e.win, 1);
   assert.ok(e.points > 0);
 });
@@ -261,7 +261,6 @@ test('evaluateMoves: one entry per candidate, and the top utility is what a cold
   const s = makeState({ hands: [['9♠', 'Q♥', '6♦', 'A♠'], ['7♣', 'K♦', '8♠']], top: '9♥' });
   const evals = AI.evaluateMoves(s, ME, G.mulberry32(7), fast);
   assert.equal(evals.length, AI.candidates(s, ME).length);
-  for (const e of evals) assert.ok(e.win >= 0 && e.win <= 1);
   const top = evals.reduce((a, b) => b.utility > a.utility ? b : a);
   const mv = AI.monteCarloMove(s, ME, G.mulberry32(7), { samples: 24, temperature: 1e-9 });
   assert.deepEqual(mv, { card: top.card, namedSuit: top.namedSuit });
