@@ -477,6 +477,7 @@ window.addEventListener('resize', fitHands);
 window.addEventListener('keydown', e => {
   if (e.code !== 'Space' || !document.getElementById('suit-dialog').hidden) return;
   e.preventDefault();
+  if (!document.getElementById('next-round').hidden) return nextRound();
   const legal = Game.legalCards(state, YOU);
   if (legal.length === 1) onCardClick(legal[0], handCardEl(YOU, legal[0]));
   else if (!legal.length) onDeckClick();
