@@ -197,25 +197,51 @@ function afterMove(start, playedFrom) {
   shiftHand(before);
   animateEvents(start, playedFrom).then(() => {
     if (g !== generation || state.roundOver) return;
-    if (state.current === CPU) timer = setTimeout(cpuTurn, 700 + Math.random() * 600);
+    if (state.current === CPU) cpuTurn(g);
   });
 }
 
-function cpuTurn() {
+const CPU_BATCHES = 40;
+
+// The computer thinks during its pause; a drawn card is only taken once the pause is over, so the draw is seen to happen.
+function cpuTurn(g) {
   const start = state.events.length;
-  if (Game.legalCards(state, CPU).length) {
-    const mv = AI.monteCarloMove(state, CPU, Math.random);
-    const from = document.getElementById('cpu-hand').children[state.hands[CPU].indexOf(mv.card)].getBoundingClientRect();
-    Game.playCard(state, CPU, mv.card, mv.namedSuit);
-    afterMove(start, from);
-  } else {
-    Game.takeDraw(state, CPU);
-    if (state.drawn) {
-      const mv = AI.monteCarloMove(state, CPU, Math.random);
+  const pause = new Promise(resolve => { timer = setTimeout(resolve, 700 + Math.random() * 600); });
+  const fromHand = Game.legalCards(state, CPU).length > 0;
+  const move = fromHand ? cpuMove(g) : pause.then(() => { Game.takeDraw(state, CPU); return state.drawn ? cpuMove(g) : null; });
+  Promise.all([move, pause]).then(([mv]) => {
+    if (g !== generation) return;
+    let from = null;
+    if (mv) {
+      if (fromHand) from = document.getElementById('cpu-hand').children[state.hands[CPU].indexOf(mv.card)].getBoundingClientRect();
       Game.playCard(state, CPU, mv.card, mv.namedSuit);
     }
-    afterMove(start, null);
-  }
+    afterMove(start, from);
+  });
+}
+
+function cpuMove(g) {
+  const moves = AI.candidates(state, CPU);
+  if (moves.length === 1) return Promise.resolve(moves[0]);
+  return think(CPU, batches => batches >= CPU_BATCHES, () => g !== generation).then(AI.bestMove);
+}
+
+// Averages batches of evaluations until `enough` says so, yielding between them so the page stays responsive.
+// One 96-sample evaluation is too noisy for a percentage or for a reliable choice between close moves.
+function think(player, enough, cancelled) {
+  return new Promise(resolve => {
+    const t0 = performance.now();
+    let sums = null, batches = 0;
+    (function batch() {
+      if (cancelled()) return;
+      const evals = AI.evaluateMoves(state, player, Math.random);
+      batches++;
+      if (sums) evals.forEach((e, i) => { sums[i].win += e.win; sums[i].points += e.points; });
+      else sums = evals;
+      if (!enough(batches, performance.now() - t0)) return setTimeout(batch, 0);
+      resolve(sums.map(e => Object.assign(e, { win: e.win / batches, points: e.points / batches })));
+    })();
+  });
 }
 
 // --- Human interaction ---
@@ -241,32 +267,21 @@ const HINT_MS = 2000;
 let hintRun = 0;
 
 // Each playable card gets the chance of winning the game after it is played and the expected round points in your favour.
-// One 96-sample evaluation is too noisy for a percentage, so batches are averaged for HINT_MS, yielding between them so the page stays responsive.
 function showHint() {
   const run = ++hintRun;
   const button = document.getElementById('hint');
   button.disabled = true;
   button.textContent = 'Считаю…';
-  const t0 = performance.now();
-  let sums = null, batches = 0;
-  (function batch() {
-    if (run !== hintRun) return;
-    const evals = AI.evaluateMoves(state, YOU, Math.random);
-    batches++;
-    if (sums) evals.forEach((e, i) => { sums[i].win += e.win; sums[i].points += e.points; });
-    else sums = evals;
-    if (performance.now() - t0 < HINT_MS) return setTimeout(batch, 0);
-    showBadges(sums.map(e => Object.assign(e, { win: e.win / batches, points: e.points / batches })));
-  })();
+  think(YOU, (batches, ms) => ms >= HINT_MS, () => run !== hintRun).then(showBadges);
 }
 
 function showBadges(evals) {
-  const ranked = evals.slice().sort((a, b) => b.win - a.win || b.points - a.points);
+  const best = AI.bestMove(evals);
   for (const el of document.getElementById('you-hand').children) {
-    const e = ranked.find(e => String(e.card.id) === el.dataset.id);
+    const e = evals.find(e => String(e.card.id) === el.dataset.id);
     if (!e) continue;
     const badge = document.createElement('span');
-    badge.className = 'hint' + (e === ranked[0] ? ' best' : '');
+    badge.className = 'hint' + (e === best ? ' best' : '');
     const pts = Math.round(e.points);
     badge.innerHTML = `${e.namedSuit ? '→ ' + e.namedSuit + '<br>' : ''}<b>${Math.round(e.win * 100)} %</b><br>${pts < 0 ? '−' : '+'}${pointsWord(Math.abs(pts))}`;
     el.appendChild(badge);

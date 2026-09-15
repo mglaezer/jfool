@@ -222,7 +222,7 @@ test('monte carlo never picks a clear blunder: ace then the last card wins the g
   const s = makeState({ hands: [['A♠', '6♠'], ['7♦']], top: '8♠', scores: [95, 95] });
   const rng = G.mulberry32(8);
   for (let i = 0; i < 20; i++) {
-    const mv = AI.monteCarloMove(s, ME, rng, fast);
+    const mv = AI.monteCarloMove(s, ME, rng);
     assert.equal(mv.card, card('A♠'));
   }
 });
@@ -234,15 +234,6 @@ test('monte carlo decides quickly at browser settings', () => {
   for (let i = 0; i < 10; i++) AI.monteCarloMove(s, ME, rng);
   const ms = (Date.now() - t0) / 10;
   assert.ok(ms < 250, `${ms} ms per decision`);
-});
-
-test('softmax pick never chooses a move outside the blunder gap and mixes the moves inside it', () => {
-  const rng = G.mulberry32(1);
-  // A temperature far above the default keeps the move just outside the gap within softmax reach, so only the gap can exclude it.
-  const picks = [0, 0, 0, 0];
-  for (let i = 0; i < 2000; i++) picks[AI.softmaxPick([0, 0.01, -0.02, -0.045], 0.05, AI.DEFAULTS.blunderGap, rng)]++;
-  assert.equal(picks[3], 0);
-  assert.ok(picks[2] > 0);
 });
 
 test('monte carlo never looks at the opponent hand or the deck order', () => {
@@ -266,6 +257,6 @@ test('evaluateMoves: one entry per candidate, and the top win chance is what a c
   const evals = AI.evaluateMoves(s, ME, G.mulberry32(7), fast);
   assert.equal(evals.length, AI.candidates(s, ME).length);
   const top = evals.reduce((a, b) => b.win > a.win ? b : a);
-  const mv = AI.monteCarloMove(s, ME, G.mulberry32(7), { samples: 24, temperature: 1e-9 });
+  const mv = AI.monteCarloMove(s, ME, G.mulberry32(7), fast);
   assert.deepEqual(mv, { card: top.card, namedSuit: top.namedSuit });
 });

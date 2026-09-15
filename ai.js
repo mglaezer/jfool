@@ -68,9 +68,11 @@
 
   function sampleWorld(state, me, slots, rng) {
     const opp = 1 - me;
-    const pool = unseenCards(state, me);
+    // After a flip the deck is the old pile turned over unshuffled, so its cards and their order are known to anyone who followed the play.
+    const flipped = (state.events || []).some(e => e.type === 'flip');
+    const pool = flipped ? unseenCards(state, me).filter(c => !state.deck.includes(c)) : unseenCards(state, me);
     // The face-up bottom card of the first deal is still at the bottom of the deck as long as it is unseen and the deck is not empty.
-    const bottom = state.bottom && state.deck.length && pool.includes(state.bottom) ? state.bottom : null;
+    const bottom = !flipped && state.bottom && state.deck.length && pool.includes(state.bottom) ? state.bottom : null;
     if (bottom) pool.splice(pool.indexOf(bottom), 1);
     const n = state.hands[opp].length;
     const order = slots.slice(0, n);
@@ -86,7 +88,7 @@
     }
     const w = cloneState(state);
     w.hands[opp] = hand;
-    w.deck = shuffle(pool, rng);
+    w.deck = flipped ? state.deck.slice() : shuffle(pool, rng);
     if (bottom) w.deck.unshift(bottom);
     return w;
   }
@@ -124,16 +126,31 @@
     const pressure = 0.4 + Math.min(1.5, Math.max(0, (hand.length - oppN) * 0.25 + (oppN <= 2 ? 0.5 : 0)));
     let s = cardPoints(card) * pressure;
 
-    const sameSuit = rest.filter(c => c.suit === suit).length;
-    const sameRank = isQ ? 0 : rest.filter(c => c.rank === card.rank).length;
-    const followUp = rest.some(c => c.suit === suit || (!isQ && c.rank === card.rank));
     if (card.rank === 'A' || card.rank === '7') {
-      s += 6 + (followUp ? 10 : 0);
+      // An ace or seven keeps the turn, so what matters is the run of cards that can follow it; the usual bonus for
+      // keeping cards of its suit would play the wrong ace first and strand the followers.
+      const chain = chainLength(card, rest);
+      if (chain === rest.length) return 900 + cardPoints(card);
+      s += 6 + (chain ? 10 : 0) + 3 * chain;
       if (card.rank === '7') s += 5 + (oppN <= 2 ? 25 : oppN <= 3 ? 8 : 0);
+    } else {
+      const sameSuit = rest.filter(c => c.suit === suit).length;
+      const sameRank = isQ ? 0 : rest.filter(c => c.rank === card.rank).length;
+      s += 2.5 * sameSuit + 1.5 * sameRank;
     }
-    s += 2.5 * sameSuit + 1.5 * sameRank;
     if (shortage) s += 10 * shortage[suit];
     return s;
+  }
+
+  // Longest run of cards playable in a row after `top` while the opponent is skipped.
+  function chainLength(top, rest) {
+    if (top.rank !== 'A' && top.rank !== '7') return 0;
+    let best = 0;
+    rest.forEach((c, i) => {
+      if (!matches(c, top, null)) return;
+      best = Math.max(best, 1 + chainLength(c, rest.filter((_, j) => j !== i)));
+    });
+    return best;
   }
 
   function heuristicMove(state, player, rng, shortage) {
@@ -146,7 +163,7 @@
     return best;
   }
 
-  // --- Monte Carlo player: sample consistent worlds, play them out, pick by softmax ---
+  // --- Monte Carlo player: sample consistent worlds, play them out, pick the best average ---
   function stepRollout(world, rng) {
     const p = world.current;
     const legal = legalCards(world, p);
@@ -194,7 +211,7 @@
     for (let i = 0; i < maxSteps && !world.roundOver; i++) stepRollout(world, rng);
   }
 
-  const DEFAULTS = { samples: 96, temperature: 0.007, blunderGap: 0.05, maxSteps: 400 };
+  const DEFAULTS = { samples: 96, maxSteps: 400 };
 
   // Every candidate move with the player's chance of winning the game after it and the expected round points
   // in the player's favour (positive when the opponent is expected to be charged more).
@@ -217,27 +234,19 @@
     return moves.map((mv, i) => ({ card: mv.card, namedSuit: mv.namedSuit, win: sums[i].win / o.samples, points: sums[i].points / o.samples }));
   }
 
-  function monteCarloMove(state, player, rng, opts) {
-    const o = Object.assign({}, DEFAULTS, opts);
-    const moves = candidates(state, player);
-    if (moves.length === 1) return moves[0];
-    const evals = evaluateMoves(state, player, rng, o);
-    return moves[softmaxPick(evals.map(e => e.win), o.temperature, o.blunderGap, rng)];
+  function bestMove(evals) {
+    return evals.reduce((a, b) => b.win > a.win || (b.win === a.win && b.points > a.points) ? b : a);
   }
 
-  function softmaxPick(values, temperature, gap, rng) {
-    const best = Math.max(...values);
-    const weights = values.map(v => v < best - gap ? 0 : Math.exp((v - best) / temperature));
-    let r = rng() * weights.reduce((a, b) => a + b, 0);
-    for (let i = 0; i < weights.length; i++) {
-      r -= weights[i];
-      if (r <= 0) return i;
-    }
-    return values.indexOf(best);
+  function monteCarloMove(state, player, rng, opts) {
+    const moves = candidates(state, player);
+    if (moves.length === 1) return moves[0];
+    const { card, namedSuit } = bestMove(evaluateMoves(state, player, rng, opts));
+    return { card, namedSuit };
   }
 
   return {
-    greedyMove, heuristicMove, monteCarloMove, evaluateMoves, candidates, scoreMove,
-    opponentSlots, sampleWorld, unseenCards, suitShortage, violates, softmaxPick, winChance, DEFAULTS,
+    greedyMove, heuristicMove, monteCarloMove, evaluateMoves, bestMove, candidates, scoreMove,
+    opponentSlots, sampleWorld, unseenCards, suitShortage, violates, winChance, DEFAULTS,
   };
 });
