@@ -198,8 +198,6 @@ function afterMove(start, playedFrom) {
   animateEvents(start, playedFrom).then(() => {
     if (g !== generation || state.roundOver) return;
     if (state.current === CPU) timer = setTimeout(cpuTurn, 700 + Math.random() * 600);
-    // A drawn card that fits must be played, so it is played without a click once it has landed in the hand.
-    else if (state.drawn) timer = setTimeout(() => onCardClick(state.drawn, handCardEl(YOU, state.drawn)), 400);
   });
 }
 
@@ -212,6 +210,10 @@ function cpuTurn() {
     afterMove(start, from);
   } else {
     Game.takeDraw(state, CPU);
+    if (state.drawn) {
+      const mv = AI.monteCarloMove(state, CPU, Math.random);
+      Game.playCard(state, CPU, mv.card, mv.namedSuit);
+    }
     afterMove(start, null);
   }
 }
@@ -275,7 +277,18 @@ function showBadges(evals) {
 
 function onDeckClick() {
   if (state.roundOver || state.current !== YOU || state.drawn || Game.legalCards(state, YOU).length) return;
-  humanMove(() => Game.takeDraw(state, YOU), null);
+  seen = state.events.length;
+  Game.takeDraw(state, YOU);
+  const card = state.drawn;
+  // A drawn card that fits must be played, so it goes from the deck straight to the pile without visiting the hand.
+  if (!card || card.rank !== 'Q' || state.hands[YOU].length === 1) {
+    if (card) Game.playCard(state, YOU, card, card.suit);
+    afterMove(seen, null);
+    return;
+  }
+  const deck = document.getElementById('deck-pile').firstElementChild.getBoundingClientRect();
+  launch(card, deck, document.getElementById('top-card').lastElementChild.getBoundingClientRect(), true, 0)
+    .then(ghost => showSuitDialog(suit => { humanMove(() => Game.playCard(state, YOU, card, suit), null); ghost.remove(); }));
 }
 
 // --- Animation ---
@@ -328,16 +341,19 @@ function handCardEl(player, card) {
 function animateEvents(start, playedFrom) {
   const deck = document.getElementById('deck-pile').firstElementChild.getBoundingClientRect();
   const flights = [];
-  for (const ev of state.events.slice(start)) {
-    if (ev.type === 'play' && playedFrom) {
-      flights.push(flyCard(ev.card, playedFrom, document.getElementById('top-card').lastElementChild, true, 0));
-    } else if (ev.type === 'draw' && ev.card) {
+  const events = state.events.slice(start);
+  events.forEach((ev, i) => {
+    if (ev.type === 'play') {
+      // A play right after a draw is the drawn card, which flies from the deck.
+      const from = events[i - 1]?.type === 'draw' ? deck : playedFrom;
+      if (from) flights.push(flyCard(ev.card, from, document.getElementById('top-card').lastElementChild, true, 0));
+    } else if (ev.type === 'draw' && ev.card && events[i + 1]?.type !== 'play') {
       flights.push(flyCard(ev.card, deck, handCardEl(ev.player, ev.card), ev.player === YOU, 0));
-    } else if (ev.type === 'seven') {
+    } else if (ev.type === 'seven' && ev.taken) {
       state.hands[ev.player].slice(-ev.taken).forEach((c, i) =>
         flights.push(flyCard(c, deck, handCardEl(ev.player, c), ev.player === YOU, 350 + i * 200)));
     }
-  }
+  });
   return Promise.all(flights);
 }
 
@@ -461,7 +477,6 @@ function render() {
       + (end.bonus ? (end.winner === YOU ? ` Вы закончили дамой: минус ${end.bonus}.` : ` Компьютер закончил дамой: минус ${end.bonus}.`) : '');
   }
   else if (!yourTurn) text = 'Ход компьютера…';
-  else if (state.drawn) text = 'Взятая карта подходит.';
   else if (state.forced) text = `Первый ход: сыграйте ${cardName(state.forced)}.`;
   else if (playable.length === 0) text = state.deck.length ? 'Нет подходящей карты. Нажмите на колоду, чтобы взять карту.' : 'Нет подходящей карты, колода пуста. Нажмите на колоду, чтобы пропустить ход.';
   else text = 'Ваш ход. Выберите подсвеченную карту.';
@@ -478,6 +493,7 @@ window.addEventListener('keydown', e => {
   if (e.code !== 'Space' || !document.getElementById('suit-dialog').hidden) return;
   e.preventDefault();
   if (!document.getElementById('next-round').hidden) return nextRound();
+  if (state.drawn) return;
   const legal = Game.legalCards(state, YOU);
   if (legal.length === 1) onCardClick(legal[0], handCardEl(YOU, legal[0]));
   else if (!legal.length) onDeckClick();
