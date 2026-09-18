@@ -30,7 +30,8 @@
   .scores { display: flex; gap: 12px; flex-wrap: wrap; }
   .score { background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.15); border-radius: 12px; padding: 8px 14px; min-width: 130px; }
   .score .label { font-size: .85em; opacity: .8; }
-  .score b { font-family: "Oranienbaum", "Georgia", serif; font-weight: normal; font-size: 1.9em; line-height: 1.1; display: block; }
+  .score b { font-family: "Oranienbaum", "Georgia", serif; font-weight: normal; font-size: 1.9em; line-height: 1.1; display: block; white-space: nowrap; }
+  .score b small { font-size: .75em; opacity: .7; }
   .score .bar { height: 5px; background: rgba(255,255,255,.15); border-radius: 3px; margin-top: 6px; overflow: hidden; }
   .score .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), #e0523e); width: 0; transition: width .5s ease; }
 
@@ -421,17 +422,17 @@ function fitHand(hand) {
 }
 
 
-// While the round result is on screen the score shows where it came from: 90+15, or 90−20 for a queen finish.
-function scoreText(player) {
+// While the round result is on screen the score shows where it came from: 90+15=105, or 37−20=17 for a queen finish.
+function scoreHtml(player) {
   if (!state.roundOver) return state.scores[player];
   const end = state.events[state.events.length - 1];
-  if (player !== end.winner) return `${state.scores[player] - end.points}+${end.points}`;
-  return end.bonus ? `${state.scores[player] + end.bonus}−${end.bonus}` : state.scores[player];
+  if (player !== end.winner) return `<small>${state.scores[player] - end.points}+${end.points}=</small>${state.scores[player]}`;
+  return end.bonus ? `<small>${state.scores[player] + end.bonus}−${end.bonus}=</small>${state.scores[player]}` : state.scores[player];
 }
 
 function render() {
-  document.getElementById('score-you').textContent = scoreText(YOU);
-  document.getElementById('score-cpu').textContent = scoreText(CPU);
+  document.getElementById('score-you').innerHTML = scoreHtml(YOU);
+  document.getElementById('score-cpu').innerHTML = scoreHtml(CPU);
   document.getElementById('bar-you').style.width = Math.min(100, Math.max(0, state.scores[YOU]) / LOSING_SCORE * 100) + '%';
   document.getElementById('bar-cpu').style.width = Math.min(100, Math.max(0, state.scores[CPU]) / LOSING_SCORE * 100) + '%';
 
