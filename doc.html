@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>101</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oranienbaum&family=PT+Sans:wght@400;700&display=swap">
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --felt: #1a5c42; --felt-light: #2c7f5c; --felt-dark: #0b3323; --gold: #e9c46a; --ink: #17130f; --red: #8f1a24;
+    --paper: #fbf7ee;
+  }
+  body {
+    margin: 0; font-family: "PT Sans", "Helvetica Neue", Arial, sans-serif; color: #fff; min-height: 100vh;
+    background: radial-gradient(ellipse at 50% 30%, var(--felt-light) 0%, var(--felt) 45%, var(--felt-dark) 100%);
+  }
+  /* The same cloth grain as the table in index.html, so the page reads as part of the game. */
+  body::before {
+    content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .09;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 20px 16px 56px; }
+  nav { display: flex; gap: 18px; align-items: baseline; flex-wrap: wrap; padding: 6px 4px 18px; font-size: .95em; }
+  nav a { color: var(--gold); text-decoration: none; border-bottom: 1px solid rgba(233,196,106,.35); }
+  nav a:hover { border-bottom-color: var(--gold); }
+  nav a.here { color: #fff; border-bottom-color: transparent; }
+  nav .home { font-family: "Oranienbaum", "Georgia", serif; font-size: 1.5em; border: none; margin-right: auto; }
+
+  article {
+    background: linear-gradient(170deg, #fff 0%, var(--paper) 100%); color: var(--ink);
+    border-radius: 14px; padding: 48px 56px 56px; border: 1px solid #b8b3a6;
+    box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 0 0 2px #fff;
+    font-size: 17.5px; line-height: 1.68;
+  }
+  article h1 {
+    font-family: "Oranienbaum", "Georgia", serif; font-weight: normal; font-size: 3em; line-height: 1.05;
+    color: var(--felt-dark); margin: 0 0 28px; padding-bottom: 18px; border-bottom: 2px solid var(--gold);
+  }
+  article h2 {
+    font-family: "Oranienbaum", "Georgia", serif; font-weight: normal; font-size: 1.85em; line-height: 1.15;
+    color: var(--felt); margin: 44px 0 14px;
+  }
+  article h2 + p, article h2 + ul, article h2 + ol { margin-top: 0; }
+  article p { margin: 0 0 16px; }
+  article ul, article ol { margin: 0 0 16px; padding-left: 26px; }
+  article li { margin-bottom: 9px; }
+  article li::marker { color: var(--felt-light); }
+  article b { color: var(--red); }
+  article a { color: var(--felt); }
+  @media (max-width: 560px) {
+    article { padding: 28px 22px 34px; font-size: 16.5px; border-radius: 10px; }
+    article h1 { font-size: 2.2em; }
+    article h2 { font-size: 1.5em; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav id="nav"></nav>
+  <article id="doc"></article>
+</div>
+<script>
+const DOCS = [['RULES.md', 'Правила'], ['STRATEGY.md', 'Стратегия компьютера']];
+const name = DOCS.some(([f]) => f === location.search.slice(1)) ? location.search.slice(1) : DOCS[0][0];
+
+const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+function inline(s) {
+  return esc(s)
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2">$1</a>')
+    .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+    .replace(/\*([^*]+)\*/g, '<i>$1</i>');
+}
+
+function render(md) {
+  const out = [];
+  let list = null;
+  for (const raw of md.split('\n')) {
+    const line = raw.trim();
+    if (!line) { if (list) { out.push('</' + list + '>'); list = null; } continue; }
+    const head = line.match(/^(#{1,6}) (.+)/);
+    const bullet = line.match(/^[-*] (.+)/);
+    const number = line.match(/^\d+\. (.+)/);
+    const want = bullet ? 'ul' : number ? 'ol' : null;
+    if (list && list !== want) { out.push('</' + list + '>'); list = null; }
+    if (want && !list) { out.push('<' + want + '>'); list = want; }
+    if (head) out.push('<h' + head[1].length + '>' + inline(head[2]) + '</h' + head[1].length + '>');
+    else if (want) out.push('<li>' + inline((bullet || number)[1]) + '</li>');
+    else out.push('<p>' + inline(line) + '</p>');
+  }
+  if (list) out.push('</' + list + '>');
+  return out.join('\n');
+}
+
+document.getElementById('nav').innerHTML = '<a class="home" href="./">101</a>' +
+  DOCS.map(([f, t]) => `<a href="?${f}" class="${f === name ? 'here' : ''}">${t}</a>`).join('');
+document.title = DOCS.find(([f]) => f === name)[1] + ' — 101';
+
+fetch(name)
+  .then(r => r.text())
+  .then(md => { document.getElementById('doc').innerHTML = render(md); })
+  .catch(() => { document.getElementById('doc').innerHTML = `<p>Не удалось загрузить <a href="${name}">${name}</a>.</p>`; });
+</script>
+</body>
+</html>
